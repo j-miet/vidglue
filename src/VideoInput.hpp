@@ -15,21 +15,21 @@ struct InputFormatDeleter {
     }
 };
 
-struct DecoderDeleter {
+struct InputDecoderDeleter {
     void operator()(AVCodecContext* ctx) const {
         if (ctx)
             avcodec_free_context(&ctx);
     }
 };
 
-struct FrameDeleter {
+struct InputFrameDeleter {
     void operator()(AVFrame* f) const {
         if (f)
             av_frame_free(&f);
     }
 };
 
-struct SwsDeleter {
+struct InputSwsDeleter {
     void operator()(SwsContext* s) const {
         if (s)
             sws_freeContext(s);
@@ -44,9 +44,6 @@ class VideoInput {
 
     AVFrame* getFrame() const { return m_frame.get(); }
 
-    std::unique_ptr<AVFrame, FrameDeleter>
-    getScaledFrame(int width, int height);
-
     double getDuration() const;
     int getVideoStreamIndex() const;
     int getAudioStreamIndex() const;
@@ -56,10 +53,10 @@ class VideoInput {
 
   private:
     std::unique_ptr<AVFormatContext, InputFormatDeleter> m_format;
-    std::unique_ptr<AVCodecContext, DecoderDeleter> m_decoder;
-    std::unique_ptr<AVFrame, FrameDeleter> m_frame;
-    std::unique_ptr<AVFrame, FrameDeleter> m_tempFrame;
-    std::unique_ptr<SwsContext, SwsDeleter> m_sws;
+    std::unique_ptr<AVCodecContext, InputDecoderDeleter> m_decoder;
+    std::unique_ptr<AVFrame, InputFrameDeleter> m_frame;
+    std::unique_ptr<AVFrame, InputFrameDeleter> m_tempFrame;
+    std::unique_ptr<SwsContext, InputSwsDeleter> m_sws;
 
     int m_decodedFrameIndex{0};
     int m_streamIndex{1};

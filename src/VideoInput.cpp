@@ -88,47 +88,6 @@ bool VideoInput::decodeNextFrame() {
     }
 }
 
-std::unique_ptr<AVFrame, FrameDeleter>
-VideoInput::getScaledFrame(int width, int height) {
-    if (!m_sws) {
-        m_sws.reset(sws_getContext(
-            m_frame->width,
-            m_frame->height,
-            static_cast<AVPixelFormat>(m_frame->format),
-            width,
-            height,
-            AV_PIX_FMT_YUV420P,
-            SWS_FAST_BILINEAR,
-            nullptr,
-            nullptr,
-            nullptr));
-    }
-
-    AVFrame* raw = av_frame_alloc();
-    if (!raw)
-        throw std::runtime_error("Failed to allocate frame");
-
-    std::unique_ptr<AVFrame, FrameDeleter> scaled(raw);
-
-    scaled->format = AV_PIX_FMT_YUV420P;
-    scaled->width = width;
-    scaled->height = height;
-
-    if (av_frame_get_buffer(scaled.get(), 0) < 0)
-        throw std::runtime_error("Failed to allocate buffer");
-
-    sws_scale(
-        m_sws.get(),
-        m_frame->data,
-        m_frame->linesize,
-        0,
-        m_frame->height,
-        scaled->data,
-        scaled->linesize);
-
-    return scaled;
-}
-
 double VideoInput::getDuration() const {
     if (!m_format || m_streamIndex < 0)
         throw std::runtime_error("Invalid state");
