@@ -1,5 +1,7 @@
-#include "VideoComposer.hpp"
+#include <assert.h>
+
 #include "Utils.hpp"
+#include "VideoComposer.hpp"
 
 VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
                              const std::vector<VideoLayout>& layout,
@@ -13,11 +15,25 @@ VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
       m_outH(outH),
       m_fps(fps),
       m_inputFPS(inputFPS) {
+
     m_outFrame = av_frame_alloc();
     m_outFrame->format = AV_PIX_FMT_YUV420P;
     m_outFrame->width = outW;
     m_outFrame->height = outH;
     av_frame_get_buffer(m_outFrame, 0);
+
+    // create scalers (one per input)
+    for (size_t i = 0; i < inputs.size(); i++) {
+        auto* f = inputs[i].getFrame();
+        m_scalers.emplace_back(std::make_unique<Scaler>(
+            f->width,
+            f->height,
+            (AVPixelFormat)f->format,
+            layout[i].w,
+            layout[i].h));
+    }
+
+    assert(m_scalers.size() == m_inputs.size()); // confirm each input has a scaler
 }
 
 VideoComposer::~VideoComposer() {
@@ -52,6 +68,7 @@ void VideoComposer::clearFrame() {
 }
 
 void VideoComposer::composeFrame(double inTime) {
+#pragma omp parallel for
     for (size_t i = 0; i < m_inputs.size(); i++) {
         auto& v = m_inputs[i];
         auto& l = m_layout[i];
@@ -62,9 +79,9 @@ void VideoComposer::composeFrame(double inTime) {
         while (v.getDecodedFrameIndex() < targetFrameIndex && v.decodeNextFrame()) {
         }
 
-        auto scaled = v.getScaledFrame(l.w, l.h);
+        auto scaled = m_scalers[i]->scale(v.getFrame());
 
-        copyToOutput(scaled.get(), l);
+        copyToOutput(scaled, l);
     }
 }
 
