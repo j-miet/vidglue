@@ -1,8 +1,11 @@
+#include <algorithm>
+#include <execution>
 #include <iostream>
 #include <vector>
 
 #include "Structs.hpp"
 #include "Utils.hpp"
+#include "VideoComposer.hpp"
 #include "VideoInput.hpp"
 #include "VideoOutput.hpp"
 
@@ -81,51 +84,8 @@ int main() {
     outFrame->height = OUTPUT_H;
     av_frame_get_buffer(outFrame, 0);
 
-    int64_t totalOutputFrames = std::ceil(adjustedDuration * FPS);
-
-    // main loop: decode -> sws -> encode
-    for (int64_t outIdx = 0; outIdx < totalOutputFrames; outIdx++) {
-        double outTime = outIdx / double(FPS);      // output frame time
-        double inTime = outTime * SPEED_MULTIPLIER; // map to input time
-
-        // clear frame
-        for (int y = 0; y < OUTPUT_H; y++)
-            memset(outFrame->data[0] + y * outFrame->linesize[0], 0, OUTPUT_W);
-        for (int y = 0; y < OUTPUT_H / 2; y++) {
-            memset(outFrame->data[1] + y * outFrame->linesize[1], 128, OUTPUT_W / 2);
-            memset(outFrame->data[2] + y * outFrame->linesize[2], 128, OUTPUT_W / 2);
-        }
-
-        // layout composition
-        for (size_t i = 0; i < inputs.size(); i++) {
-            auto& v = inputs[i];
-            auto& l = VIDEO_LAYOUT[i];
-
-            int targetInputFrameIndex = int(std::floor(inTime * inputFPS[i]));
-
-            // decode frames until target is reached
-            while (v.getDecodedFrameIndex() < targetInputFrameIndex && v.decodeNextFrame()) {
-            }
-
-            auto scaled = v.getScaledFrame(l.w, l.h);
-
-            // Y and U/V planes for YUV colors
-            for (int y = 0; y < l.h; y++)
-                memcpy(outFrame->data[0] + (y + l.y) * outFrame->linesize[0] + l.x,
-                       scaled->data[0] + y * scaled->linesize[0], l.w);
-            for (int y = 0; y < l.h / 2; y++) {
-                memcpy(outFrame->data[1] + (y + l.y / 2) * outFrame->linesize[1] + l.x / 2,
-                       scaled->data[1] + y * scaled->linesize[1], l.w / 2);
-                memcpy(outFrame->data[2] + (y + l.y / 2) * outFrame->linesize[2] + l.x / 2,
-                       scaled->data[2] + y * scaled->linesize[2], l.w / 2);
-            }
-        }
-
-        outFrame->pts = outIdx;
-        out.writeFrame(outFrame);
-
-        Utils::showProgress(outIdx / double(totalOutputFrames) * 100, outTime, adjustedDuration);
-    }
+    VideoComposer composer(inputs, VIDEO_LAYOUT, out, OUTPUT_W, OUTPUT_H, FPS, inputFPS);
+    composer.process(adjustedDuration, SPEED_MULTIPLIER);
 
     // copy audio from the first input
     Utils::copyAudio(inputs[0], out.getFormatContext(), displayMax);
