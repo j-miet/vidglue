@@ -21,6 +21,7 @@ VideoOutput::VideoOutput(const OutputSettings& settings) {
     m_encoder->pix_fmt = AV_PIX_FMT_YUV420P;
     m_encoder->time_base = {1, settings.FPS};
     m_encoder->max_b_frames = settings.MAX_B_FRAMES;
+    m_encoder->thread_count = 0;
 
     if (usingGPU) {
         av_opt_set(m_encoder->priv_data, "preset", settings.GPU_PRESET, 0);

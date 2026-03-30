@@ -27,6 +27,8 @@ VideoInput::VideoInput(const std::string& filename) {
         throw std::runtime_error("Failed to allocate codec");
 
     m_decoder.reset(codec);
+    m_decoder->thread_count = 0; // multithreading, use all cores
+    m_decoder->thread_type = FF_THREAD_FRAME;
 
     if (avcodec_parameters_to_context(
             m_decoder.get(),
