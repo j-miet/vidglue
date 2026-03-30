@@ -22,7 +22,7 @@ struct OutputFormatDeleter {
     }
 };
 
-struct EncoderDeleter {
+struct OutputEncoderDeleter {
     void operator()(AVCodecContext* ctx) const {
         if (ctx)
             avcodec_free_context(&ctx);
@@ -39,14 +39,14 @@ class VideoOutput {
     void writeFrame(AVFrame* frame);
     void finish();
 
-    AVFormatContext* getFormatContext() { return m_outFormat.get(); }
-    AVStream* getVideoStream() { return m_outVideo; }
+    AVFormatContext* getFormatContext() const { return m_outFormat.get(); }
+    AVStream* getVideoStream() const { return m_outVideo; }
 
   private:
     const AVCodec* selectEncoder(bool gpuRequested, bool& usingGPU);
 
     std::unique_ptr<AVFormatContext, OutputFormatDeleter> m_outFormat;
-    std::unique_ptr<AVCodecContext, EncoderDeleter> m_encoder;
+    std::unique_ptr<AVCodecContext, OutputEncoderDeleter> m_encoder;
 
     AVStream* m_outVideo{nullptr};
     bool m_finished{false};
