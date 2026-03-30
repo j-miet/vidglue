@@ -2,12 +2,18 @@
 
 #include <string>
 
+extern "C" {
+#include "libavcodec/avcodec.h"
+#include "libavformat/avformat.h"
+#include "libswscale/swscale.h"
+};
+
 /// @brief Layout for a single input video
 struct VideoLayout {
     int x{}, y{}, w{}, h{};
 };
 
-/// @brief
+/// @brief Settings passed to VideoOutput constructor
 struct OutputSettings {
     const std::string FILENAME{"output.mp4"};
     const int OUTPUT_W{0};
@@ -27,4 +33,45 @@ struct OutputSettings {
 
     // B-frames
     const int MAX_B_FRAMES{2}; // 0-2 is default range for GPU, CPU often uses 3-4. Thus 2 is good default.
+};
+
+// deleters for unique_ptr
+struct OutputFormatDeleter {
+    void operator()(AVFormatContext* ctx) const {
+        if (!ctx)
+            return;
+
+        if (ctx->pb)
+            avio_closep(&ctx->pb);
+
+        avformat_free_context(ctx);
+    }
+};
+
+struct FormatDeleter {
+    void operator()(AVFormatContext* ctx) const {
+        if (ctx)
+            avformat_close_input(&ctx);
+    }
+};
+
+struct CodecDeleter {
+    void operator()(AVCodecContext* ctx) const {
+        if (ctx)
+            avcodec_free_context(&ctx);
+    }
+};
+
+struct FrameDeleter {
+    void operator()(AVFrame* f) const {
+        if (f)
+            av_frame_free(&f);
+    }
+};
+
+struct SwsDeleter {
+    void operator()(SwsContext* s) const {
+        if (s)
+            sws_freeContext(s);
+    }
 };

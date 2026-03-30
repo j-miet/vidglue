@@ -6,20 +6,7 @@ extern "C" {
 
 #include <memory>
 
-// deleters for Scaler's unique_ptr
-struct ScalerSwsDeleter {
-    void operator()(SwsContext* s) const {
-        if (s)
-            sws_freeContext(s);
-    }
-};
-
-struct ScalerFrameDeleter {
-    void operator()(AVFrame* f) const {
-        if (f)
-            av_frame_free(&f);
-    }
-};
+#include "Structs.hpp"
 
 class Scaler {
   public:
@@ -29,6 +16,6 @@ class Scaler {
     AVFrame* scale(const AVFrame* input);
 
   private:
-    std::unique_ptr<SwsContext, ScalerSwsDeleter> m_context;
-    std::unique_ptr<AVFrame, ScalerFrameDeleter> m_frame;
+    std::unique_ptr<SwsContext, SwsDeleter> m_context;
+    std::unique_ptr<AVFrame, FrameDeleter> m_frame;
 };

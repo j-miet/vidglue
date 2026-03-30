@@ -9,26 +9,6 @@ extern "C" {
 
 #include "Structs.hpp"
 
-// deleters for VideoOutput's unique_ptr
-struct OutputFormatDeleter {
-    void operator()(AVFormatContext* ctx) const {
-        if (!ctx)
-            return;
-
-        if (ctx->pb)
-            avio_closep(&ctx->pb);
-
-        avformat_free_context(ctx);
-    }
-};
-
-struct OutputEncoderDeleter {
-    void operator()(AVCodecContext* ctx) const {
-        if (ctx)
-            avcodec_free_context(&ctx);
-    }
-};
-
 class VideoOutput {
   public:
     VideoOutput(const OutputSettings& settings);
@@ -46,7 +26,7 @@ class VideoOutput {
     const AVCodec* selectEncoder(bool gpuRequested, bool& usingGPU);
 
     std::unique_ptr<AVFormatContext, OutputFormatDeleter> m_outFormat;
-    std::unique_ptr<AVCodecContext, OutputEncoderDeleter> m_encoder;
+    std::unique_ptr<AVCodecContext, CodecDeleter> m_encoder;
 
     AVStream* m_outVideo{nullptr};
     bool m_finished{false};

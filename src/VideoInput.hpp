@@ -5,36 +5,9 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
+#include "Structs.hpp"
+
 #include <memory>
-
-// deleters for VideoInput's unique_ptr
-struct InputFormatDeleter {
-    void operator()(AVFormatContext* ctx) const {
-        if (ctx)
-            avformat_close_input(&ctx);
-    }
-};
-
-struct InputDecoderDeleter {
-    void operator()(AVCodecContext* ctx) const {
-        if (ctx)
-            avcodec_free_context(&ctx);
-    }
-};
-
-struct InputFrameDeleter {
-    void operator()(AVFrame* f) const {
-        if (f)
-            av_frame_free(&f);
-    }
-};
-
-struct InputSwsDeleter {
-    void operator()(SwsContext* s) const {
-        if (s)
-            sws_freeContext(s);
-    }
-};
 
 class VideoInput {
   public:
@@ -52,11 +25,11 @@ class VideoInput {
     int getDecodedFrameIndex() const { return m_decodedFrameIndex; }
 
   private:
-    std::unique_ptr<AVFormatContext, InputFormatDeleter> m_format;
-    std::unique_ptr<AVCodecContext, InputDecoderDeleter> m_decoder;
-    std::unique_ptr<AVFrame, InputFrameDeleter> m_frame;
-    std::unique_ptr<AVFrame, InputFrameDeleter> m_tempFrame;
-    std::unique_ptr<SwsContext, InputSwsDeleter> m_sws;
+    std::unique_ptr<AVFormatContext, FormatDeleter> m_format;
+    std::unique_ptr<AVCodecContext, CodecDeleter> m_decoder;
+    std::unique_ptr<AVFrame, FrameDeleter> m_frame;
+    std::unique_ptr<AVFrame, FrameDeleter> m_tempFrame;
+    std::unique_ptr<SwsContext, SwsDeleter> m_sws;
 
     int m_decodedFrameIndex{0};
     int m_streamIndex{1};
