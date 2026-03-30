@@ -1,0 +1,8 @@
+.vscode
+bin
+
+# no test videos
+*.mp4
+
+# other
+temp
