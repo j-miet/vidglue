@@ -58,17 +58,12 @@ void VideoComposer::process(double duration, double speed) {
 }
 
 void VideoComposer::clearFrame() {
-    for (int y = 0; y < m_outH; y++)
-        memset(m_outFrame->data[0] + y * m_outFrame->linesize[0], 0, m_outW);
-
-    for (int y = 0; y < m_outH / 2; y++) {
-        memset(m_outFrame->data[1] + y * m_outFrame->linesize[1], 128, m_outW / 2);
-        memset(m_outFrame->data[2] + y * m_outFrame->linesize[2], 128, m_outW / 2);
-    }
+    memset(m_outFrame->data[0], 0, m_outFrame->linesize[0] * m_outH);
+    memset(m_outFrame->data[1], 128, m_outFrame->linesize[1] * (m_outH / 2));
+    memset(m_outFrame->data[2], 128, m_outFrame->linesize[2] * (m_outH / 2));
 }
 
 void VideoComposer::composeFrame(double inTime) {
-#pragma omp parallel for
     for (size_t i = 0; i < m_inputs.size(); i++) {
         auto& v = m_inputs[i];
         auto& l = m_layout[i];
@@ -78,10 +73,13 @@ void VideoComposer::composeFrame(double inTime) {
         // decode frames until target is reached
         while (v.getDecodedFrameIndex() < targetFrameIndex && v.decodeNextFrame()) {
         }
+    }
 
-        auto scaled = m_scalers[i]->scale(v.getFrame());
-
-        copyToOutput(scaled, l);
+// OpenMP parallelization only after decoding
+#pragma omp parallel for
+    for (size_t i = 0; i < m_inputs.size(); i++) {
+        auto scaled = m_scalers[i]->scale(m_inputs[i].getFrame());
+        copyToOutput(scaled, m_layout[i]);
     }
 }
 
