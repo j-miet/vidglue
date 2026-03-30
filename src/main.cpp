@@ -77,13 +77,6 @@ int main() {
 
     out.writeHeader();
 
-    // raw output frame
-    AVFrame* outFrame = av_frame_alloc();
-    outFrame->format = AV_PIX_FMT_YUV420P;
-    outFrame->width = OUTPUT_W;
-    outFrame->height = OUTPUT_H;
-    av_frame_get_buffer(outFrame, 0);
-
     VideoComposer composer(inputs, VIDEO_LAYOUT, out, OUTPUT_W, OUTPUT_H, FPS, inputFPS);
     composer.process(adjustedDuration, SPEED_MULTIPLIER);
 
@@ -94,7 +87,6 @@ int main() {
     printf("\nFinishing...\n");
 
     out.finish();
-    av_frame_free(&outFrame);
 
     std::cout << "\nDone!\n";
     return 0;
