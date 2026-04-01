@@ -5,39 +5,33 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
-#include <condition_variable>
 #include <memory>
-#include <mutex>
-#include <queue>
-#include <thread>
 
 #include "Structs.hpp"
 
 class VideoInput {
   public:
     explicit VideoInput(const std::string& filename);
-    ~VideoInput(); // default constructor is used, but this also removes default copy/move behavior
+    ~VideoInput(); // default constructor is used, but this overrides default move behavior i.e. removes it completely
 
-    // disable copying; threading member objects are not allowed to be copied/moved around
+    // copy constructor must be overridden to prevent copying unique_ptr and causing errors
     VideoInput(const VideoInput&) = delete;
     VideoInput& operator=(const VideoInput&) = delete;
-
-    // disable moving
-    VideoInput(VideoInput&&) = delete;
-    VideoInput& operator=(VideoInput&&) = delete;
+    // move constructor must now be defined manually: copying is not allowed so default move behavior is desired
+    VideoInput(VideoInput&&) = default;
+    VideoInput& operator=(VideoInput&&) = default;
 
     bool decodeNextFrame();
-    AVFrame* getFrameBlocking();
-    double getDuration() const;
-    int getVideoStreamIndex() const;
-    int getAudioStreamIndex() const;
+    void checkDecoderHW();
 
     AVFrame* getFrame() const { return m_frame.get(); }
+    int getAudioStreamIndex() const;
+    double getDuration() const;
     AVFormatContext* getFormatContext() const { return m_format.get(); }
+    int getDecodedFrameIndex() const { return m_decodedFrameIndex; }
+    int getVideoStreamIndex() const { return m_streamIndex; }
 
   private:
-    void m_checkDecoderHW();
-
     std::unique_ptr<AVFormatContext, FormatDeleter> m_format;
     std::unique_ptr<AVCodecContext, CodecDeleter> m_decoder;
     std::unique_ptr<AVFrame, FrameDeleter> m_frame;
@@ -53,16 +47,4 @@ class VideoInput {
 
     static AVPixelFormat get_hw_format(AVCodecContext* ctx,
                                        const AVPixelFormat* pix_fmts);
-
-    // decoder threading
-    std::thread m_decodeThread;
-    std::queue<AVFrame*> m_frameQueue;
-
-    std::mutex m_mutex;
-    std::condition_variable m_cv;
-
-    bool m_stop{false};
-    bool m_finished{false};
-
-    static constexpr size_t MAX_QUEUE_SIZE = 10;
 };

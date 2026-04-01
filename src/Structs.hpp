@@ -1,12 +1,11 @@
 #pragma once
-
-#include <string>
-
 extern "C" {
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
 #include "libswscale/swscale.h"
-};
+}
+
+#include <string>
 
 /// @brief Layout for a single input video
 struct VideoLayout {

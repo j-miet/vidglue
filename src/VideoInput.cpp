@@ -1,10 +1,10 @@
-#include <chrono>
-#include <iostream>
-#include <stdexcept>
-
 extern "C" {
 #include <libavutil/hwcontext.h>
 }
+
+#include <chrono>
+#include <iostream>
+#include <stdexcept>
 
 #include "Utils.hpp"
 #include "VideoInput.hpp"
@@ -46,7 +46,7 @@ VideoInput::VideoInput(const std::string& filename) {
         throw runtime_error("Failed to allocate codec");
 
     m_decoder.reset(codec);
-    m_decoder->thread_count = 0;                                // multithreading, 0 for maximum performance
+    m_decoder->thread_count = 0;                                // multithreading, use all cores
     m_decoder->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE; // let ffmpeg pick optimal model
 
     // Keep this disabled for now, GPU decoding is currently inefficient
@@ -65,55 +65,9 @@ VideoInput::VideoInput(const std::string& filename) {
 
     if (!m_frame || !m_tempFrame)
         throw runtime_error("Failed to allocate frames");
-
-    // threaded decoding invoked last; inputs + decoder have to be properly initialized at this point
-    m_decodeThread = std::thread([this]() {
-        while (!m_stop) {
-            {
-                // create local scope with brackets. Exiting this releases the lock automatically
-                std::unique_lock<std::mutex> lock(m_mutex);
-
-                m_cv.wait(lock, [this]() {
-                    return m_stop || m_frameQueue.size() < MAX_QUEUE_SIZE;
-                });
-            }
-
-            if (m_stop)
-                break;
-
-            if (!decodeNextFrame()) {
-                std::lock_guard<std::mutex> lock(m_mutex);
-                m_finished = true;
-                m_cv.notify_all();
-                break;
-            }
-
-            AVFrame* cloned = av_frame_clone(m_frame.get());
-
-            // local scope to handle locking again
-            {
-                std::lock_guard<std::mutex> lg(m_mutex);
-                m_frameQueue.push(cloned);
-            }
-
-            m_cv.notify_all();
-        }
-    });
 }
 
 VideoInput::~VideoInput() {
-    m_stop = true;
-    m_cv.notify_all();
-
-    if (m_decodeThread.joinable())
-        m_decodeThread.join();
-
-    while (!m_frameQueue.empty()) {
-        AVFrame* f = m_frameQueue.front();
-        av_frame_free(&f);
-        m_frameQueue.pop();
-    }
-
     if (m_hwDeviceContext)
         av_buffer_unref(&m_hwDeviceContext);
 }
@@ -171,23 +125,6 @@ bool VideoInput::decodeNextFrame() {
     }
 }
 
-AVFrame* VideoInput::getFrameBlocking() {
-    std::unique_lock<std::mutex> lock(m_mutex);
-
-    m_cv.wait(lock, [this]() {
-        return !m_frameQueue.empty() || m_finished;
-    });
-
-    if (m_frameQueue.empty() && m_finished)
-        return nullptr;
-
-    AVFrame* f = m_frameQueue.front();
-    m_frameQueue.pop();
-
-    m_cv.notify_all();
-    return f;
-}
-
 double VideoInput::getDuration() const {
     if (!m_format || m_streamIndex < 0)
         throw runtime_error("Invalid state");
@@ -196,15 +133,11 @@ double VideoInput::getDuration() const {
     return stream->duration * av_q2d(stream->time_base);
 }
 
-int VideoInput::getVideoStreamIndex() const {
-    return m_streamIndex;
-}
-
 int VideoInput::getAudioStreamIndex() const {
     return av_find_best_stream(m_format.get(), AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
 }
 
-void VideoInput::m_checkDecoderHW() {
+void VideoInput::checkDecoderHW() {
     // Try to enable CUDA decoding
     if (av_hwdevice_ctx_create(&m_hwDeviceContext,
                                AV_HWDEVICE_TYPE_CUDA,

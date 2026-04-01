@@ -1,17 +1,9 @@
 #include <assert.h>
-#include <iostream>
 
 #include "Utils.hpp"
 #include "VideoComposer.hpp"
 
-// frame display time helper
-inline double frameTime(const AVFrame* f, AVRational timeBase) {
-    if (f->pts == AV_NOPTS_VALUE)
-        return 0.0;
-    return f->pts * av_q2d(timeBase);
-}
-
-VideoComposer::VideoComposer(std::vector<std::reference_wrapper<VideoInput>> inputs,
+VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
                              const std::vector<VideoLayout>& layout,
                              VideoOutput& output,
                              int outW, int outH, int fps,
@@ -24,24 +16,20 @@ VideoComposer::VideoComposer(std::vector<std::reference_wrapper<VideoInput>> inp
       m_outH(outH),
       m_fps(fps),
       m_inputFPS(inputFPS) {
+
     m_outFrame = av_frame_alloc();
     m_outFrame->format = AV_PIX_FMT_YUV420P;
     m_outFrame->width = outW;
     m_outFrame->height = outH;
     av_frame_get_buffer(m_outFrame, 0);
 
-    // initialize caches
-    m_cachedFrames.resize(m_inputs.size(), nullptr);
-    m_cachedTimes.resize(m_inputs.size(), 0.0);
-
     // create scalers (one per input)
-    for (size_t i = 0; i < m_inputs.size(); i++) {
-        auto& input = m_inputs[i].get();
-        auto* frame = input.getFrame();
+    for (size_t i = 0; i < inputs.size(); i++) {
+        auto* f = inputs[i].getFrame();
         m_scalers.emplace_back(std::make_unique<Scaler>(
-            frame->width,
-            frame->height,
-            (AVPixelFormat)frame->format,
+            f->width,
+            f->height,
+            (AVPixelFormat)f->format,
             layout[i].w,
             layout[i].h,
             flags));
@@ -52,11 +40,6 @@ VideoComposer::VideoComposer(std::vector<std::reference_wrapper<VideoInput>> inp
 
 VideoComposer::~VideoComposer() {
     av_frame_free(&m_outFrame);
-
-    for (auto& f : m_cachedFrames) {
-        if (f)
-            av_frame_free(&f);
-    }
 }
 
 void VideoComposer::process(double duration, double speed) {
@@ -66,8 +49,8 @@ void VideoComposer::process(double duration, double speed) {
         double outTime = outIdx / double(m_fps); // output frame time
         double inTime = outTime * speed;         // map output to input time
 
-        m_clearFrame();
-        m_composeFrame(inTime);
+        clearFrame();
+        composeFrame(inTime);
 
         m_outFrame->pts = outIdx;
         m_output.writeFrame(m_outFrame);
@@ -76,63 +59,33 @@ void VideoComposer::process(double duration, double speed) {
     }
 }
 
-void VideoComposer::m_clearFrame() {
+void VideoComposer::clearFrame() {
     memset(m_outFrame->data[0], 0, m_outFrame->linesize[0] * m_outH);
     memset(m_outFrame->data[1], 128, m_outFrame->linesize[1] * (m_outH / 2));
     memset(m_outFrame->data[2], 128, m_outFrame->linesize[2] * (m_outH / 2));
 }
 
-void VideoComposer::m_composeFrame(double inTime) {
+void VideoComposer::composeFrame(double inTime) {
     for (size_t i = 0; i < m_inputs.size(); i++) {
-        auto& v = m_inputs[i].get();
+        auto& v = m_inputs[i];
         auto& l = m_layout[i];
-        auto& s = m_scalers[i];
 
-        AVStream* stream =
-            v.getFormatContext()->streams[v.getVideoStreamIndex()];
+        int targetFrameIndex = int(std::floor(inTime * m_inputFPS[i]));
 
-        // ensure a cached frame
-        if (!m_cachedFrames[i]) {
-            m_cachedFrames[i] = v.getFrameBlocking();
-            if (!m_cachedFrames[i])
-                continue;
-
-            m_cachedTimes[i] = frameTime(m_cachedFrames[i], stream->time_base);
+        // decode frames until target is reached
+        while (v.getDecodedFrameIndex() < targetFrameIndex && v.decodeNextFrame()) {
         }
+    }
 
-        // advance until target time is reached; cap reads per frame
-        int maxAdvance = 5;
-        while (maxAdvance-- > 0) {
-            AVFrame* next = v.getFrameBlocking();
-            if (!next)
-                break;
-
-            double nextTime = frameTime(next, stream->time_base);
-
-            if (nextTime > inTime) {
-                // too far → keep current frame
-                av_frame_free(&next);
-                break;
-            }
-
-            // replace cached frame
-            av_frame_free(&m_cachedFrames[i]);
-            m_cachedFrames[i] = next;
-            m_cachedTimes[i] = nextTime;
-        }
-
-        // use cached frame
-        if (!m_cachedFrames[i])
-            continue;
-
-        AVFrame* scaled = s->scale(m_cachedFrames[i]);
-        AVFrame* tmp = av_frame_clone(scaled); // create a temp frame
-        m_copyToOutput(scaled, l);
-        av_frame_free(&tmp); // free the temp frame, not scaled -> otherwise m_frame is also freed, causing a crash
+// OpenMP parallelization only after decoding
+#pragma omp parallel for
+    for (size_t i = 0; i < m_inputs.size(); i++) {
+        auto scaled = m_scalers[i]->scale(m_inputs[i].getFrame());
+        copyToOutput(scaled, m_layout[i]);
     }
 }
 
-void VideoComposer::m_copyToOutput(AVFrame* src, const VideoLayout& l) {
+void VideoComposer::copyToOutput(AVFrame* src, const VideoLayout& l) {
     // YUV format
     // Y plane
     for (int y = 0; y < l.h; y++)

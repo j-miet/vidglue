@@ -3,7 +3,6 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
-#include <functional>
 #include <vector>
 
 #include "Scaler.hpp"
@@ -13,7 +12,7 @@ extern "C" {
 
 class VideoComposer {
   public:
-    VideoComposer(std::vector<std::reference_wrapper<VideoInput>> inputs,
+    VideoComposer(std::vector<VideoInput>& inputs,
                   const std::vector<VideoLayout>& layout,
                   VideoOutput& output,
                   int outW, int outH, int fps,
@@ -24,15 +23,13 @@ class VideoComposer {
     void process(double duration, double speed);
 
   private:
-    void m_clearFrame();
-    void m_composeFrame(double inTime);
-    void m_copyToOutput(AVFrame* src, const VideoLayout& l);
+    void clearFrame();
+    void composeFrame(double inTime);
+    void copyToOutput(AVFrame* src, const VideoLayout& l);
 
-    std::vector<std::reference_wrapper<VideoInput>> m_inputs;
+    std::vector<VideoInput>& m_inputs;
     const std::vector<VideoLayout>& m_layout;
     VideoOutput& m_output;
-    std::vector<AVFrame*> m_cachedFrames;
-    std::vector<double> m_cachedTimes;
 
     int m_outW, m_outH, m_fps;
     const std::vector<double>& m_inputFPS;
