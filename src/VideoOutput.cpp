@@ -75,15 +75,15 @@ void VideoOutput::writeHeader() {
 }
 
 void VideoOutput::writeFrame(AVFrame* frame) {
-    AVPacket pkt = {0};
+    AVPacket* pkt{av_packet_alloc()};
 
     avcodec_send_frame(m_encoder.get(), frame);
 
-    while (avcodec_receive_packet(m_encoder.get(), &pkt) == 0) {
-        av_packet_rescale_ts(&pkt, m_encoder->time_base, m_outVideo->time_base);
-        pkt.stream_index = m_outVideo->index;
-        av_interleaved_write_frame(m_outFormat.get(), &pkt);
-        av_packet_unref(&pkt);
+    while (avcodec_receive_packet(m_encoder.get(), pkt) == 0) {
+        av_packet_rescale_ts(pkt, m_encoder->time_base, m_outVideo->time_base);
+        pkt->stream_index = m_outVideo->index;
+        av_interleaved_write_frame(m_outFormat.get(), pkt);
+        av_packet_unref(pkt);
     }
 }
 
@@ -91,13 +91,13 @@ void VideoOutput::finish() {
     if (m_finished)
         return;
 
-    AVPacket pkt = {0};
+    AVPacket* pkt{av_packet_alloc()};
     avcodec_send_frame(m_encoder.get(), nullptr);
 
-    while (avcodec_receive_packet(m_encoder.get(), &pkt) == 0) {
-        av_packet_rescale_ts(&pkt, m_encoder->time_base, m_outVideo->time_base);
-        av_interleaved_write_frame(m_outFormat.get(), &pkt);
-        av_packet_unref(&pkt);
+    while (avcodec_receive_packet(m_encoder.get(), pkt) == 0) {
+        av_packet_rescale_ts(pkt, m_encoder->time_base, m_outVideo->time_base);
+        av_interleaved_write_frame(m_outFormat.get(), pkt);
+        av_packet_unref(pkt);
     }
 
     av_write_trailer(m_outFormat.get());

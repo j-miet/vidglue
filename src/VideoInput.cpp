@@ -76,10 +76,10 @@ bool VideoInput::decodeNextFrame() {
     if (m_eof)
         return false;
 
-    AVPacket pkt = {0};
+    AVPacket* pkt{av_packet_alloc()};
 
     while (true) {
-        int ret = av_read_frame(m_format.get(), &pkt);
+        int ret = av_read_frame(m_format.get(), pkt);
         if (ret < 0) {
             avcodec_send_packet(m_decoder.get(), nullptr);
             if (avcodec_receive_frame(m_decoder.get(), m_tempFrame.get()) == 0) {
@@ -92,13 +92,13 @@ bool VideoInput::decodeNextFrame() {
             return false;
         }
 
-        if (pkt.stream_index != m_streamIndex) {
-            av_packet_unref(&pkt);
+        if (pkt->stream_index != m_streamIndex) {
+            av_packet_unref(pkt);
             continue;
         }
 
-        avcodec_send_packet(m_decoder.get(), &pkt);
-        av_packet_unref(&pkt);
+        avcodec_send_packet(m_decoder.get(), pkt);
+        av_packet_unref(pkt);
 
         ret = avcodec_receive_frame(m_decoder.get(), m_tempFrame.get());
         if (ret == AVERROR(EAGAIN))
