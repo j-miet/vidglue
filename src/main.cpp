@@ -21,8 +21,11 @@ const int FPS = 60;
 
 // other
 const int SCALER_FLAGS = SWS_FAST_BILINEAR;
-const double SPEED_MULTIPLIER = 1.0; // <1.0 = slow down, >1.0 = speed up. Doesn't affect output audio!
 const double PREVIEW_SECONDS = 30.0; // 0 = full duration
+
+// <1.0 = slow down, >1.0 = speed up. Doesn't affect output audio! Note that speed multiplier affects video length and
+// therefore also preview time: if PREVIEW_SECONDS is 30.0 and speed 2.0, output is going to be 15 seconds
+const double SPEED_MULTIPLIER = 2.0;
 
 // passed to VideoOutput constructor
 const OutputSettings SETTINGS = {
@@ -70,6 +73,7 @@ int main() {
         AVFrame* f = nullptr;
         while (!(f = v.getFrameBlocking())) {
         }
+        av_frame_free(&f);
     }
 
     double displayMax = (PREVIEW_SECONDS > 0) ? std::min(maxDuration, PREVIEW_SECONDS) : maxDuration;
