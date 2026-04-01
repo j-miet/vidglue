@@ -10,7 +10,7 @@ extern "C" {
 
 class Scaler {
   public:
-    Scaler(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH);
+    Scaler(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, int flags);
     // default destructor is fine
 
     AVFrame* scale(const AVFrame* input);

@@ -2,11 +2,11 @@
 
 #include "Scaler.hpp"
 
-Scaler::Scaler(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH) {
+Scaler::Scaler(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, int flags) {
     m_context.reset(sws_getContext(
         srcW, srcH, srcFmt,
         dstW, dstH, AV_PIX_FMT_YUV420P,
-        SWS_FAST_BILINEAR, // could make this adjustable
+        flags,
         nullptr, nullptr, nullptr));
 
     if (!m_context)

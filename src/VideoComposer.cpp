@@ -3,11 +3,12 @@
 #include "Utils.hpp"
 #include "VideoComposer.hpp"
 
-VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
+VideoComposer::VideoComposer(std::vector<std::reference_wrapper<VideoInput>> inputs,
                              const std::vector<VideoLayout>& layout,
                              VideoOutput& output,
                              int outW, int outH, int fps,
-                             const std::vector<double>& inputFPS)
+                             const std::vector<double>& inputFPS,
+                             int flags)
     : m_inputs(inputs),
       m_layout(layout),
       m_output(output),
@@ -15,7 +16,6 @@ VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
       m_outH(outH),
       m_fps(fps),
       m_inputFPS(inputFPS) {
-
     m_outFrame = av_frame_alloc();
     m_outFrame->format = AV_PIX_FMT_YUV420P;
     m_outFrame->width = outW;
@@ -23,14 +23,16 @@ VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
     av_frame_get_buffer(m_outFrame, 0);
 
     // create scalers (one per input)
-    for (size_t i = 0; i < inputs.size(); i++) {
-        auto* f = inputs[i].getFrame();
+    for (size_t i = 0; i < m_inputs.size(); i++) {
+        auto& input = m_inputs[i].get();
+        auto* frame = input.getFrame();
         m_scalers.emplace_back(std::make_unique<Scaler>(
-            f->width,
-            f->height,
-            (AVPixelFormat)f->format,
+            frame->width,
+            frame->height,
+            (AVPixelFormat)frame->format,
             layout[i].w,
-            layout[i].h));
+            layout[i].h,
+            flags));
     }
 
     assert(m_scalers.size() == m_inputs.size()); // confirm each input has a scaler
@@ -65,21 +67,18 @@ void VideoComposer::clearFrame() {
 
 void VideoComposer::composeFrame(double inTime) {
     for (size_t i = 0; i < m_inputs.size(); i++) {
-        auto& v = m_inputs[i];
+        auto& v = m_inputs[i].get();
         auto& l = m_layout[i];
+        auto& s = m_scalers[i];
 
-        int targetFrameIndex = int(std::floor(inTime * m_inputFPS[i]));
+        AVFrame* frame = v.getFrameBlocking();
 
-        // decode frames until target is reached
-        while (v.getDecodedFrameIndex() < targetFrameIndex && v.decodeNextFrame()) {
-        }
-    }
+        if (!frame)
+            continue;
 
-// OpenMP parallelization only after decoding
-#pragma omp parallel for
-    for (size_t i = 0; i < m_inputs.size(); i++) {
-        auto scaled = m_scalers[i]->scale(m_inputs[i].getFrame());
-        copyToOutput(scaled, m_layout[i]);
+        auto scaled = s->scale(frame);
+        copyToOutput(scaled, l);
+        av_frame_free(&frame);
     }
 }
 
