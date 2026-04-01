@@ -9,20 +9,36 @@
 #include "VideoInput.hpp"
 #include "VideoOutput.hpp"
 
-// TODO add CLI args + data reading from file -> move these inside main
-const std::vector<const char*> INPUT_VIDEOS = {"vid1.mp4", "vid2.mp4"};
-const std::vector<VideoLayout> VIDEO_LAYOUT = {
-    {0, 0, 1580, 1080},
-    {1580, 0, 340, 1080}};
+enum class RenderMode {
+    LAYOUT,
+    SEQUENTIAL
+};
 
-// these will be used a lot, keep them outside settings struct
+const RenderMode MODE = RenderMode::LAYOUT;
+
 const int OUTPUT_W = 1920;
 const int OUTPUT_H = 1080;
 const int FPS = 60;
 
+// order matters here:
+// LAYOUT: audio comes only from the first input
+// SEQUENTIAL: defines order of videos in output, left -> right = first -> last
+const std::vector<const char*> INPUT_VIDEOS = {"vid1.mp4", "vid2.mp4"};
+
+// only for LAYOUT: position and size of each video in output
+const std::vector<VideoLayout> VIDEO_LAYOUT = {
+    {0, 0, 1580, 1080},
+    {1580, 0, 340, 1080}};
+
+// only for SEQUENTIAL
+const std::vector<VideoLayout> VIDEO_LAYOUT_SEQ = {
+    {0, 0, OUTPUT_W, OUTPUT_H},
+    {0, 0, OUTPUT_W / 2, OUTPUT_H / 2}};
+const double PAUSE_DURATION = 2.0; // only for SEQUENTIAL: black pause screen duration between videos
+
 // other
 const int SCALER_FLAGS = SWS_FAST_BILINEAR;
-const double PREVIEW_SECONDS = 30.0; // 0 = full duration
+const double PREVIEW_SECONDS = 900.0; // 0 = full duration
 // <1.0 = slow down, >1.0 = speed up. Doesn't affect output audio! Note that speed multiplier affects video length and
 // therefore also preview time: if PREVIEW_SECONDS is 30.0 and speed 2.0, output is going to be 15 seconds
 const double SPEED_MULTIPLIER = 1.0;
@@ -81,11 +97,16 @@ int main() {
 
     out.writeHeader();
 
-    VideoComposer composer(inputs, VIDEO_LAYOUT, out, OUTPUT_W, OUTPUT_H, FPS, inputFPS, SCALER_FLAGS);
-    composer.process(adjustedDuration, SPEED_MULTIPLIER);
-
-    // copy audio from the first input
-    Utils::copyAudio(inputs[0], out.getFormatContext(), adjustedDuration);
+    if (MODE == RenderMode::LAYOUT) {
+        VideoComposer composer(inputs, VIDEO_LAYOUT, out, OUTPUT_W, OUTPUT_H, FPS, inputFPS, SCALER_FLAGS);
+        composer.processLayout(adjustedDuration, SPEED_MULTIPLIER);
+        Utils::copyAudio(inputs[0], out.getFormatContext(), adjustedDuration); // copy audio from the first input
+    } else {
+        VideoComposer composer(inputs, VIDEO_LAYOUT_SEQ, out, OUTPUT_W, OUTPUT_H, FPS, inputFPS, SCALER_FLAGS);
+        composer.processSequential(SPEED_MULTIPLIER, PAUSE_DURATION);
+        // TODO combine each audio stream into one + add pauses between each transition based on PAUSE_DURATION
+        // Utils::copyAudio(inputs[0], out.getFormatContext(), adjustedDuration);
+    }
 
     Utils::showProgress(100.0, adjustedDuration, adjustedDuration);
     std::cout << "\nFinishing...\n";
