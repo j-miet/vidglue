@@ -43,29 +43,29 @@ void Utils::copyAudio(VideoInput& input, AVFormatContext* outFormat, double maxT
 
     av_seek_frame(inputFormat, audioStreamIndex, 0, AVSEEK_FLAG_BACKWARD);
 
-    AVPacket pkt = {0};
+    AVPacket* pkt{av_packet_alloc()};
 
-    while (av_read_frame(inputFormat, &pkt) >= 0) {
-        if (pkt.stream_index != audioStreamIndex) {
-            av_packet_unref(&pkt);
+    while (av_read_frame(inputFormat, pkt) >= 0) {
+        if (pkt->stream_index != audioStreamIndex) {
+            av_packet_unref(pkt);
             continue;
         }
 
-        if (pkt.pts != AV_NOPTS_VALUE) {
-            double pktTime = pkt.pts * av_q2d(inputAudio->time_base);
+        if (pkt->pts != AV_NOPTS_VALUE) {
+            double pktTime = pkt->pts * av_q2d(inputAudio->time_base);
             if (pktTime > maxTime) {
-                av_packet_unref(&pkt);
+                av_packet_unref(pkt);
                 break;
             }
         }
 
-        pkt.stream_index = outputAudio->index;
-        av_packet_rescale_ts(&pkt, inputAudio->time_base, outputAudio->time_base);
+        pkt->stream_index = outputAudio->index;
+        av_packet_rescale_ts(pkt, inputAudio->time_base, outputAudio->time_base);
 
-        int ret = av_interleaved_write_frame(outFormat, &pkt);
+        int ret = av_interleaved_write_frame(outFormat, pkt);
         if (ret < 0)
             std::cerr << "Warning: failed to write audio packet: " << ret << "\n";
 
-        av_packet_unref(&pkt);
+        av_packet_unref(pkt);
     }
 }
