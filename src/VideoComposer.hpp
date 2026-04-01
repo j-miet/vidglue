@@ -24,9 +24,9 @@ class VideoComposer {
     void process(double duration, double speed);
 
   private:
-    void clearFrame();
-    void composeFrame(double inTime);
-    void copyToOutput(AVFrame* src, const VideoLayout& l);
+    void m_clearFrame();
+    void m_composeFrame(double inTime);
+    void m_copyToOutput(AVFrame* src, const VideoLayout& l);
 
     std::vector<std::reference_wrapper<VideoInput>> m_inputs;
     const std::vector<VideoLayout>& m_layout;

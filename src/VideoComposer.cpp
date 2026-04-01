@@ -49,8 +49,8 @@ void VideoComposer::process(double duration, double speed) {
         double outTime = outIdx / double(m_fps); // output frame time
         double inTime = outTime * speed;         // map output to input time
 
-        clearFrame();
-        composeFrame(inTime);
+        m_clearFrame();
+        m_composeFrame(inTime);
 
         m_outFrame->pts = outIdx;
         m_output.writeFrame(m_outFrame);
@@ -59,13 +59,13 @@ void VideoComposer::process(double duration, double speed) {
     }
 }
 
-void VideoComposer::clearFrame() {
+void VideoComposer::m_clearFrame() {
     memset(m_outFrame->data[0], 0, m_outFrame->linesize[0] * m_outH);
     memset(m_outFrame->data[1], 128, m_outFrame->linesize[1] * (m_outH / 2));
     memset(m_outFrame->data[2], 128, m_outFrame->linesize[2] * (m_outH / 2));
 }
 
-void VideoComposer::composeFrame(double inTime) {
+void VideoComposer::m_composeFrame(double inTime) {
     for (size_t i = 0; i < m_inputs.size(); i++) {
         auto& v = m_inputs[i].get();
         auto& l = m_layout[i];
@@ -77,12 +77,12 @@ void VideoComposer::composeFrame(double inTime) {
             continue;
 
         auto scaled = s->scale(frame);
-        copyToOutput(scaled, l);
+        m_copyToOutput(scaled, l);
         av_frame_free(&frame);
     }
 }
 
-void VideoComposer::copyToOutput(AVFrame* src, const VideoLayout& l) {
+void VideoComposer::m_copyToOutput(AVFrame* src, const VideoLayout& l) {
     // YUV format
     // Y plane
     for (int y = 0; y < l.h; y++)
