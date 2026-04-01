@@ -20,7 +20,8 @@ class VideoComposer {
                   int flags);
     ~VideoComposer();
 
-    void process(double duration, double speed);
+    void processLayout(double duration, double speed);
+    void processSequential(double speed, double pauseSeconds);
 
   private:
     void clearFrame();

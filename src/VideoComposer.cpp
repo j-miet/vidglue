@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <iostream>
 
 #include "Utils.hpp"
 #include "VideoComposer.hpp"
@@ -42,7 +43,7 @@ VideoComposer::~VideoComposer() {
     av_frame_free(&m_outFrame);
 }
 
-void VideoComposer::process(double duration, double speed) {
+void VideoComposer::processLayout(double duration, double speed) {
     int64_t totalOutputFrames = std::ceil(duration * m_fps);
 
     for (int64_t outIdx = 0; outIdx < totalOutputFrames; outIdx++) {
@@ -59,21 +60,64 @@ void VideoComposer::process(double duration, double speed) {
     }
 }
 
+void VideoComposer::processSequential(double speed, double pauseSeconds) {
+    int64_t outFrameIndex = 0;
+    int pauseFrames = int(pauseSeconds * m_fps);
+
+    for (size_t i = 0; i < m_inputs.size(); i++) {
+        std::cout << "Processing video " << (int)i << ":\n";
+        auto& input = m_inputs[i];
+        auto& layout = m_layout[i];
+        auto& scaler = m_scalers[i];
+
+        double duration = input.getDuration();
+        double adjustedDuration = duration / speed;
+        int64_t totalFrames = int64_t(std::ceil(adjustedDuration * m_fps));
+
+        for (int64_t f = 0; f < totalFrames; f++) {
+            double outTime = f / double(m_fps);
+            double inTime = outTime * speed;
+
+            int targetFrame = int(std::floor(inTime * m_inputFPS[i]));
+
+            // decode frames until target is reached
+            while (input.getDecodedFrameIndex() < targetFrame && input.decodeNextFrame()) {
+            }
+
+            clearFrame();
+
+            AVFrame* scaled = scaler->scale(input.getFrame());
+            copyToOutput(scaled, layout);
+
+            m_outFrame->pts = outFrameIndex++;
+            m_output.writeFrame(m_outFrame);
+        }
+
+        if (i < m_inputs.size() - 1) { // don't add pause frames at the end of final video
+            for (int p = 0; p < pauseFrames; p++) {
+                clearFrame();
+
+                m_outFrame->pts = outFrameIndex++;
+                m_output.writeFrame(m_outFrame);
+            }
+        }
+    }
+}
+
 void VideoComposer::clearFrame() {
     memset(m_outFrame->data[0], 0, m_outFrame->linesize[0] * m_outH);
     memset(m_outFrame->data[1], 128, m_outFrame->linesize[1] * (m_outH / 2));
     memset(m_outFrame->data[2], 128, m_outFrame->linesize[2] * (m_outH / 2));
 }
 
+// for layouts only
 void VideoComposer::composeFrame(double inTime) {
     for (size_t i = 0; i < m_inputs.size(); i++) {
-        auto& v = m_inputs[i];
-        auto& l = m_layout[i];
+        auto& input = m_inputs[i];
 
-        int targetFrameIndex = int(std::floor(inTime * m_inputFPS[i]));
+        int targetFrame = int(std::floor(inTime * m_inputFPS[i]));
 
-        // decode frames until target is reached
-        while (v.getDecodedFrameIndex() < targetFrameIndex && v.decodeNextFrame()) {
+        while (input.getDecodedFrameIndex() < targetFrame && input.decodeNextFrame()) {
         }
     }
 
