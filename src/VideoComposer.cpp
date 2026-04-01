@@ -1,7 +1,15 @@
 #include <assert.h>
+#include <iostream>
 
 #include "Utils.hpp"
 #include "VideoComposer.hpp"
+
+// frame display time helper
+inline double frameTime(const AVFrame* f, AVRational timeBase) {
+    if (f->pts == AV_NOPTS_VALUE)
+        return 0.0;
+    return f->pts * av_q2d(timeBase);
+}
 
 VideoComposer::VideoComposer(std::vector<std::reference_wrapper<VideoInput>> inputs,
                              const std::vector<VideoLayout>& layout,
@@ -22,6 +30,10 @@ VideoComposer::VideoComposer(std::vector<std::reference_wrapper<VideoInput>> inp
     m_outFrame->height = outH;
     av_frame_get_buffer(m_outFrame, 0);
 
+    // initialize caches
+    m_cachedFrames.resize(m_inputs.size(), nullptr);
+    m_cachedTimes.resize(m_inputs.size(), 0.0);
+
     // create scalers (one per input)
     for (size_t i = 0; i < m_inputs.size(); i++) {
         auto& input = m_inputs[i].get();
@@ -40,6 +52,11 @@ VideoComposer::VideoComposer(std::vector<std::reference_wrapper<VideoInput>> inp
 
 VideoComposer::~VideoComposer() {
     av_frame_free(&m_outFrame);
+
+    for (auto& f : m_cachedFrames) {
+        if (f)
+            av_frame_free(&f);
+    }
 }
 
 void VideoComposer::process(double duration, double speed) {
@@ -71,14 +88,47 @@ void VideoComposer::m_composeFrame(double inTime) {
         auto& l = m_layout[i];
         auto& s = m_scalers[i];
 
-        AVFrame* frame = v.getFrameBlocking();
+        AVStream* stream =
+            v.getFormatContext()->streams[v.getVideoStreamIndex()];
 
-        if (!frame)
+        // ensure a cached frame
+        if (!m_cachedFrames[i]) {
+            m_cachedFrames[i] = v.getFrameBlocking();
+            if (!m_cachedFrames[i])
+                continue;
+
+            m_cachedTimes[i] = frameTime(m_cachedFrames[i], stream->time_base);
+        }
+
+        // advance until target time is reached; cap reads per frame
+        int maxAdvance = 5;
+        while (maxAdvance-- > 0) {
+            AVFrame* next = v.getFrameBlocking();
+            if (!next)
+                break;
+
+            double nextTime = frameTime(next, stream->time_base);
+
+            if (nextTime > inTime) {
+                // too far → keep current frame
+                av_frame_free(&next);
+                break;
+            }
+
+            // replace cached frame
+            av_frame_free(&m_cachedFrames[i]);
+            m_cachedFrames[i] = next;
+            m_cachedTimes[i] = nextTime;
+        }
+
+        // use cached frame
+        if (!m_cachedFrames[i])
             continue;
 
-        auto scaled = s->scale(frame);
+        AVFrame* scaled = s->scale(m_cachedFrames[i]);
+        AVFrame* tmp = av_frame_clone(scaled); // create a temp frame
         m_copyToOutput(scaled, l);
-        av_frame_free(&frame);
+        av_frame_free(&tmp); // free the temp frame, not scaled -> otherwise m_frame is also freed, causing a crash
     }
 }
 

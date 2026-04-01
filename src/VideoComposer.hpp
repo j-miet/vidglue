@@ -31,6 +31,8 @@ class VideoComposer {
     std::vector<std::reference_wrapper<VideoInput>> m_inputs;
     const std::vector<VideoLayout>& m_layout;
     VideoOutput& m_output;
+    std::vector<AVFrame*> m_cachedFrames;
+    std::vector<double> m_cachedTimes;
 
     int m_outW, m_outH, m_fps;
     const std::vector<double>& m_inputFPS;
