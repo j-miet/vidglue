@@ -74,7 +74,7 @@ VideoInput::VideoInput(const std::string& filename) {
                 std::unique_lock<std::mutex> lock(m_mutex);
 
                 m_cv.wait(lock, [this]() {
-                    return m_frameQueue.size() < MAX_QUEUE_SIZE || m_stop;
+                    return m_stop || m_frameQueue.size() < MAX_QUEUE_SIZE;
                 });
             }
 
@@ -178,7 +178,7 @@ AVFrame* VideoInput::getFrameBlocking() {
         return !m_frameQueue.empty() || m_finished;
     });
 
-    if (m_frameQueue.empty())
+    if (m_frameQueue.empty() && m_finished)
         return nullptr;
 
     AVFrame* f = m_frameQueue.front();
