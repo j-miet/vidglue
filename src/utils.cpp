@@ -4,10 +4,7 @@
 #include "Utils.hpp"
 #include "VideoInput.hpp"
 
-void Utils::showProgress(double percent, double current, double total, bool disabled = false) {
-    if (disabled)
-        return;
-
+void Utils::showProgress(double percent, double current, double total) {
     percent = std::min(100.0, std::round(percent * 10.0) / 10.0); // round to a single decimal
 
     std::cout << "\rProgress: [";
