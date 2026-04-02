@@ -3,10 +3,14 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
+#include <vector>
+
 #include "VideoInput.hpp"
 
 class Utils {
   public:
-    static void showProgress(double percent, double current, double total);
+    static void showProgress(double percent, double current, double total, bool disabled);
     static void copyAudio(VideoInput& input, AVFormatContext* outFormat, double maxTime);
+    static void copyAudioSequential(std::vector<VideoInput>& inputs, AVFormatContext* outFormat,
+                                    int outAudioStreamIndex, double previewLimit, double speed, double pauseSeconds);
 };
