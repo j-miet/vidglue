@@ -12,12 +12,12 @@ extern "C" {
 class VideoInput {
   public:
     explicit VideoInput(const std::string& filename);
-    ~VideoInput(); // default constructor is used, but this overrides default move behavior i.e. removes it completely
+    ~VideoInput(); // default constructor is used. This however prevents auto-generation of move constructor
 
-    // copy constructor must be overridden to prevent copying unique_ptr and causing errors
+    // copy constructor gets generated, but for safety reasons prevent copying unique_ptr and causing errors
     VideoInput(const VideoInput&) = delete;
     VideoInput& operator=(const VideoInput&) = delete;
-    // move constructor must now be defined manually: copying is not allowed so default move behavior is desired
+    // move constructor must be defined manually
     VideoInput(VideoInput&&) = default;
     VideoInput& operator=(VideoInput&&) = default;
 
