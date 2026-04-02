@@ -18,10 +18,10 @@ class VideoComposer {
                   int outW, int outH, int fps,
                   const std::vector<double>& inputFps,
                   int flags,
-                  bool hideProgress);
+                  int progressTimeStamp);
     ~VideoComposer();
 
-    void processLayout(double duration, double speed);
+    void processGrid(double duration, double speed);
     void processSequential(double previewLimit, double speed, double pauseSeconds);
 
   private:
@@ -35,7 +35,7 @@ class VideoComposer {
 
     int m_outW, m_outH, m_fps;
     const std::vector<double>& m_inputFPS;
-    bool m_hideProgress;
+    int m_progressTT;
 
     AVFrame* m_outFrame{nullptr};
     std::vector<std::unique_ptr<Scaler>> m_scalers;

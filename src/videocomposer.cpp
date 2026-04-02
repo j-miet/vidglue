@@ -10,7 +10,7 @@ VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
                              int outW, int outH, int fps,
                              const std::vector<double>& inputFPS,
                              int flags,
-                             bool hideProgres)
+                             int progressTimeStamp)
     : m_inputs(inputs),
       m_layout(layout),
       m_output(output),
@@ -18,7 +18,7 @@ VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
       m_outH(outH),
       m_fps(fps),
       m_inputFPS(inputFPS),
-      m_hideProgress(hideProgres) {
+      m_progressTT(progressTimeStamp) {
 
     m_outFrame = av_frame_alloc();
     m_outFrame->format = AV_PIX_FMT_YUV420P;
@@ -45,20 +45,31 @@ VideoComposer::~VideoComposer() {
     av_frame_free(&m_outFrame);
 }
 
-void VideoComposer::processLayout(double duration, double speed) {
-    int64_t totalOutputFrames = std::ceil(duration * m_fps);
+void VideoComposer::processGrid(double duration, double speed) {
+    int64_t totalFrames = std::ceil(duration * m_fps);
+    double currentProgress = 0;
+    double progressSplit = (m_progressTT > 0) ? duration / (double)m_progressTT : (m_progressTT == 0) ? 0
+                                                                                                      : -1;
+    double currentSplit = 0;
 
-    for (int64_t outIdx = 0; outIdx < totalOutputFrames; outIdx++) {
-        double outTime = outIdx / double(m_fps); // output frame time
-        double inTime = outTime * speed;         // map output to input time
+    for (int64_t f = 0; f < totalFrames; f++) {
+        double outTime = f / double(m_fps); // output frame time
+        double inTime = outTime * speed;    // map output to input time
 
         clearFrame();
         composeFrame(inTime);
 
-        m_outFrame->pts = outIdx;
+        m_outFrame->pts = f;
         m_output.writeFrame(m_outFrame);
 
-        Utils::showProgress(outIdx / double(totalOutputFrames) * 100, outTime, duration, m_hideProgress);
+        currentProgress = f / double(totalFrames) * 100;
+        if (progressSplit == 0) { // always print progress
+            Utils::showProgress(currentProgress, outTime, duration);
+        } else if ((outTime >= currentSplit && progressSplit > 0)) { // print progress on each progressSplit
+            Utils::showProgress(currentProgress, outTime, duration);
+            currentSplit += progressSplit;
+        }
+        // if progressSplit < 0, don't print progress at all
     }
 }
 
@@ -79,6 +90,10 @@ void VideoComposer::processSequential(double previewLimit, double speed, double 
         double adjustedDuration = displayMax / speed;
 
         int64_t totalFrames = int64_t(std::ceil(adjustedDuration * m_fps));
+        double currentProgress = 0;
+        double progressSplit = (m_progressTT > 0) ? adjustedDuration / (double)m_progressTT : (m_progressTT == 0) ? 0
+                                                                                                                  : -1;
+        double currentSplit = 0;
 
         for (int64_t f = 0; f < totalFrames; f++) {
             double outTime = f / double(m_fps);
@@ -97,7 +112,14 @@ void VideoComposer::processSequential(double previewLimit, double speed, double 
 
             m_outFrame->pts = outFrameIndex++;
             m_output.writeFrame(m_outFrame);
-            Utils::showProgress(f / double(totalFrames) * 100, outTime, displayMax, m_hideProgress);
+
+            // see processGrid comments
+            if (progressSplit == 0) {
+                Utils::showProgress(f / double(totalFrames) * 100, outTime, adjustedDuration);
+            } else if ((outTime >= currentSplit && progressSplit > 0)) {
+                Utils::showProgress(f / double(totalFrames) * 100, outTime, adjustedDuration);
+                currentSplit += progressSplit;
+            }
         }
 
         if (i < m_inputs.size() - 1) { // don't add pause frames at the end of final video
@@ -107,7 +129,7 @@ void VideoComposer::processSequential(double previewLimit, double speed, double 
                 m_output.writeFrame(m_outFrame);
             }
         }
-        Utils::showProgress(100.0, displayMax, displayMax, m_hideProgress);
+        Utils::showProgress(100.0, displayMax, displayMax);
         std::cout << "\n";
     }
 }
@@ -118,7 +140,7 @@ void VideoComposer::clearFrame() {
     memset(m_outFrame->data[2], 128, m_outFrame->linesize[2] * (m_outH / 2));
 }
 
-// for layouts only
+// for grid layouts only
 void VideoComposer::composeFrame(double inTime) {
     for (size_t i = 0; i < m_inputs.size(); i++) {
         auto& input = m_inputs[i];
