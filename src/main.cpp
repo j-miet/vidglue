@@ -14,7 +14,7 @@ enum class RenderMode {
     SEQUENTIAL
 };
 
-const RenderMode MODE = RenderMode::LAYOUT;
+const RenderMode MODE = RenderMode::SEQUENTIAL;
 
 const int OUTPUT_W = 1920;
 const int OUTPUT_H = 1080;
@@ -33,15 +33,17 @@ const std::vector<VideoLayout> VIDEO_LAYOUT = {
 // only for SEQUENTIAL
 const std::vector<VideoLayout> VIDEO_LAYOUT_SEQ = {
     {0, 0, OUTPUT_W, OUTPUT_H},
-    {0, 0, OUTPUT_W / 2, OUTPUT_H / 2}};
-const double PAUSE_DURATION = 2.0; // only for SEQUENTIAL: black pause screen duration between videos
+    {0, 0, OUTPUT_W / 2, OUTPUT_H}};
+const double PAUSE_DURATION = 3.0; // only for SEQUENTIAL: black pause screen duration between videos
 
 // other
 const int SCALER_FLAGS = SWS_FAST_BILINEAR;
-const double PREVIEW_SECONDS = 900.0; // 0 = full duration
+const double PREVIEW_SECONDS = 30.0; // 0 = full duration. With SEQUENTIAL renders *all videos* using this length
 // <1.0 = slow down, >1.0 = speed up. Doesn't affect output audio! Note that speed multiplier affects video length and
 // therefore also preview time: if PREVIEW_SECONDS is 30.0 and speed 2.0, output is going to be 15 seconds
 const double SPEED_MULTIPLIER = 1.0;
+// set to true to disable progress prints; increases output render speed because these run on main thread!
+const bool HIDE_PROGRESS = false; // TEST THIS ON true: base speed with GPU ~3x, this increases it about 67% -> ~5x
 
 // passed to VideoOutput constructor
 const OutputSettings SETTINGS = {
@@ -61,14 +63,22 @@ const OutputSettings SETTINGS = {
 int main() {
     av_log_set_level(AV_LOG_QUIET);
 
+    /*
+    if (MODE == RenderMode::LAYOUT) {
+        std::cout << "Using layout mode ";
+    } else {
+        std::cout << "Using sequential mode ";
+    }
+    std::cout << "with following settings -> \n"
+              << "Files: \n\n";
+    */
+
     std::vector<VideoInput> inputs;
     std::vector<double> inputFPS;
     double maxDuration = 0.0;
 
     // open inputs, setup decoders and compute FPS + duration
     for (auto f : INPUT_VIDEOS) {
-        // here it's very important input pointer fields are unique (e.g. unique_ptr): they get copied by emplace_back
-        // and original pointer gets nulled which in turn nulls the copy
         inputs.emplace_back(f);
         auto& v = inputs.back();
 
@@ -89,6 +99,7 @@ int main() {
     // setup output streams and write header
     VideoOutput out(SETTINGS);
 
+    // use first audio stream for stream creation
     int audioStream = inputs[0].getAudioStreamIndex();
     if (audioStream >= 0) {
         AVStream* inAudio = inputs[0].getFormatContext()->streams[audioStream];
@@ -98,17 +109,28 @@ int main() {
     out.writeHeader();
 
     if (MODE == RenderMode::LAYOUT) {
-        VideoComposer composer(inputs, VIDEO_LAYOUT, out, OUTPUT_W, OUTPUT_H, FPS, inputFPS, SCALER_FLAGS);
+        VideoComposer composer(inputs, VIDEO_LAYOUT, out, OUTPUT_W, OUTPUT_H, FPS, inputFPS, SCALER_FLAGS,
+                               HIDE_PROGRESS);
         composer.processLayout(adjustedDuration, SPEED_MULTIPLIER);
         Utils::copyAudio(inputs[0], out.getFormatContext(), adjustedDuration); // copy audio from the first input
+        Utils::showProgress(100.0, adjustedDuration, adjustedDuration, HIDE_PROGRESS);
     } else {
-        VideoComposer composer(inputs, VIDEO_LAYOUT_SEQ, out, OUTPUT_W, OUTPUT_H, FPS, inputFPS, SCALER_FLAGS);
-        composer.processSequential(SPEED_MULTIPLIER, PAUSE_DURATION);
-        // TODO combine each audio stream into one + add pauses between each transition based on PAUSE_DURATION
-        // Utils::copyAudio(inputs[0], out.getFormatContext(), adjustedDuration);
+        VideoComposer composer(inputs, VIDEO_LAYOUT_SEQ, out, OUTPUT_W, OUTPUT_H, FPS, inputFPS, SCALER_FLAGS,
+                               HIDE_PROGRESS);
+        composer.processSequential(PREVIEW_SECONDS, SPEED_MULTIPLIER, PAUSE_DURATION);
+
+        // lazy audio copying + create silence during pauses by skipping timestamps
+        std::cout << "\nCopying audio...\n";
+        int outAudioIndex = 1; // usually video=0, audio=1
+        Utils::copyAudioSequential(
+            inputs,
+            out.getFormatContext(),
+            outAudioIndex,
+            adjustedDuration,
+            SPEED_MULTIPLIER,
+            PAUSE_DURATION);
     }
 
-    Utils::showProgress(100.0, adjustedDuration, adjustedDuration);
     std::cout << "\nFinishing...\n";
 
     out.finish();
