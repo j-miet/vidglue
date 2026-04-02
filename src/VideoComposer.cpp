@@ -9,14 +9,16 @@ VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
                              VideoOutput& output,
                              int outW, int outH, int fps,
                              const std::vector<double>& inputFPS,
-                             int flags)
+                             int flags,
+                             bool hideProgres)
     : m_inputs(inputs),
       m_layout(layout),
       m_output(output),
       m_outW(outW),
       m_outH(outH),
       m_fps(fps),
-      m_inputFPS(inputFPS) {
+      m_inputFPS(inputFPS),
+      m_hideProgress(hideProgres) {
 
     m_outFrame = av_frame_alloc();
     m_outFrame->format = AV_PIX_FMT_YUV420P;
@@ -56,22 +58,26 @@ void VideoComposer::processLayout(double duration, double speed) {
         m_outFrame->pts = outIdx;
         m_output.writeFrame(m_outFrame);
 
-        Utils::showProgress(outIdx / double(totalOutputFrames) * 100, outTime, duration);
+        Utils::showProgress(outIdx / double(totalOutputFrames) * 100, outTime, duration, m_hideProgress);
     }
 }
 
-void VideoComposer::processSequential(double speed, double pauseSeconds) {
+void VideoComposer::processSequential(double previewLimit, double speed, double pauseSeconds) {
     int64_t outFrameIndex = 0;
     int pauseFrames = int(pauseSeconds * m_fps);
 
     for (size_t i = 0; i < m_inputs.size(); i++) {
-        std::cout << "Processing video " << (int)i << ":\n";
+        std::cout << "Composing video " << i << ":\n";
         auto& input = m_inputs[i];
         auto& layout = m_layout[i];
         auto& scaler = m_scalers[i];
 
         double duration = input.getDuration();
-        double adjustedDuration = duration / speed;
+        // in sequential outputs, preview is applied to each input
+        // E.g. 2x videos -> previewLimit = 5.0 -> render first 5 secs of both -> output is 10 sec + pauses
+        double displayMax = (previewLimit > 0) ? std::min(duration, previewLimit) : duration;
+        double adjustedDuration = displayMax / speed;
+
         int64_t totalFrames = int64_t(std::ceil(adjustedDuration * m_fps));
 
         for (int64_t f = 0; f < totalFrames; f++) {
@@ -91,16 +97,18 @@ void VideoComposer::processSequential(double speed, double pauseSeconds) {
 
             m_outFrame->pts = outFrameIndex++;
             m_output.writeFrame(m_outFrame);
+            Utils::showProgress(f / double(totalFrames) * 100, outTime, displayMax, m_hideProgress);
         }
 
         if (i < m_inputs.size() - 1) { // don't add pause frames at the end of final video
+            clearFrame();
             for (int p = 0; p < pauseFrames; p++) {
-                clearFrame();
-
                 m_outFrame->pts = outFrameIndex++;
                 m_output.writeFrame(m_outFrame);
             }
         }
+        Utils::showProgress(100.0, displayMax, displayMax, m_hideProgress);
+        std::cout << "\n";
     }
 }
 
