@@ -1,8 +1,70 @@
+#include <algorithm>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <stdexcept>
 
-#include "Utils.hpp"
-#include "VideoInput.hpp"
+#include "utils.hpp"
+#include "videoinput.hpp"
+
+#include "json.hpp" // https://github.com/nlohmann/json/blob/develop/single_include/nlohmann/json.hpp, is MIT licensed
+using json = nlohmann::json;
+
+bool Utils::readInputConfig(InputConfig& config) {
+    std::string configFile{"config.json"};
+
+    std::ifstream file(configFile);
+
+    if (!file) {
+        std::cerr << "Config file " << configFile << " could not be opened\n";
+        return false;
+    }
+
+    json j;
+    file >> j;
+
+    // setup config using JSON values:
+    // render mode
+    config.mode = (j.at("mode") == 0) ? RenderMode::GRID : RenderMode::SEQUENTIAL;
+
+    // inputs and output
+    std::vector<std::string> inputs{};
+    for (auto input : j.at("inputs")) {
+        inputs.push_back(input);
+    }
+    config.inputs = inputs;
+    config.output = j.at("output");
+
+    // layouts
+    std::vector<VideoLayout> vidLayouts{};
+    for (auto l : j.at("layout")) {
+        VideoLayout layout = {l[0], l[1], l[2], l[3]};
+        vidLayouts.push_back(layout);
+    }
+    config.layout = vidLayouts;
+
+    config.outW = j.at("outWidth");
+    config.outH = j.at("outHeight");
+    config.fps = j.at("fps");
+    config.previewDuration = j.at("previewDuration");
+    config.pauseDuration = j.at("pauseDuration");
+
+    int flags = j.at("scalerFlags");
+    config.scalerFlags = (flags == 0) ? SWS_FAST_BILINEAR : SWS_BILINEAR;
+
+    config.speedMultiplier = j.at("speedMultiplier");
+    config.progressTimestamp = j.at("progressTimestamps");
+    config.useGpu = j.at("useGpu");
+    config.gpuPreset = j.at("gpuPreset");
+    config.gpuRc = j.at("gpuRc");
+    config.gpuCq = j.at("gpuCq");
+    config.cpuPreset = j.at("cpuPreset");
+    config.cpuCrf = j.at("cpuCrf");
+    config.bFrames = j.at("bFrames");
+
+    file.close();
+    return true;
+}
 
 void Utils::showProgress(double percent, double current, double total) {
     percent = std::min(100.0, std::round(percent * 10.0) / 10.0); // round to a single decimal
@@ -38,7 +100,7 @@ void Utils::copyAudio(VideoInput& input, AVFormatContext* outFormat, double maxT
     AVFormatContext* inputFormat = input.getFormatContext();
     AVStream* inputAudio = inputFormat->streams[audioStreamIndex];
 
-    // Use existing output audio stream
+    // use existing output audio stream
     AVStream* outputAudio = outFormat->streams[audioStreamIndex];
 
     av_seek_frame(inputFormat, audioStreamIndex, 0, AVSEEK_FLAG_BACKWARD);

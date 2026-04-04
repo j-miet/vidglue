@@ -1,0 +1,24 @@
+{
+    "mode": 0,
+    "inputs": ["vid1.mp4", "vid2.mp4"],
+    "output": "output.mp4",
+    "layout": [
+        [0, 0, 1560, 1080],
+        [1560, 0, 360, 1080]
+    ],
+    "outWidth": 1920,
+    "outHeight": 1080,
+    "fps": 60,
+    "previewDuration": 30.0,
+    "pauseDuration": 3,
+    "scalerFlags": 0,
+    "speedMultiplier": 1.0,
+    "progressTimestamps": 10,
+    "useGpu": true,
+    "gpuPreset": "p3",
+    "gpuRc": "cqp",
+    "gpuCq": 23,
+    "cpuPreset": "veryfast",
+    "cpuCrf": 23,
+    "bFrames": 2
+}
