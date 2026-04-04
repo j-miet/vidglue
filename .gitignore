@@ -1,10 +1,11 @@
 .vscode
 bin
 
-# no test videos, release zips or executables
+# no test videos or non-dll release files
 *.mp4
 release/*.zip
 release/**/*.exe
+release/vidglue*
 
 # other
 temp
