@@ -5,10 +5,10 @@ extern "C" {
 
 #include <vector>
 
-#include "Scaler.hpp"
-#include "Structs.hpp"
-#include "VideoInput.hpp"
-#include "VideoOutput.hpp"
+#include "scaler.hpp"
+#include "structs.hpp"
+#include "videoinput.hpp"
+#include "videooutput.hpp"
 
 class VideoComposer {
   public:
@@ -25,9 +25,9 @@ class VideoComposer {
     void processSequential(double previewLimit, double speed, double pauseSeconds);
 
   private:
-    void clearFrame();
-    void composeFrame(double inTime);
-    void copyToOutput(AVFrame* src, const VideoLayout& l);
+    void m_clearFrame();
+    void m_composeFrame(double inTime);
+    void m_copyToOutput(AVFrame* src, const VideoLayout& l);
 
     std::vector<VideoInput>& m_inputs;
     const std::vector<VideoLayout>& m_layout;

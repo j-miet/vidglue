@@ -1,6 +1,6 @@
 #include <stdexcept>
 
-#include "Scaler.hpp"
+#include "scaler.hpp"
 
 Scaler::Scaler(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, int flags) {
     m_context.reset(sws_getContext(

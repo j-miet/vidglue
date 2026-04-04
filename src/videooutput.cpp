@@ -1,14 +1,14 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "Utils.hpp"
-#include "VideoOutput.hpp"
+#include "utils.hpp"
+#include "videooutput.hpp"
 
 using std::runtime_error;
 
 VideoOutput::VideoOutput(const OutputSettings& settings) {
     bool usingGPU = false;
-    const AVCodec* encoder = selectEncoder(settings.GPU, usingGPU);
+    const AVCodec* encoder = m_selectEncoder(settings.GPU, usingGPU);
 
     AVCodecContext* codec = avcodec_alloc_context3(encoder);
     if (!codec)
@@ -22,13 +22,14 @@ VideoOutput::VideoOutput(const OutputSettings& settings) {
     m_encoder->time_base = {1, settings.FPS};
     m_encoder->max_b_frames = settings.MAX_B_FRAMES;
     m_encoder->thread_count = 0;
+    m_encoder->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
 
     if (usingGPU) {
-        av_opt_set(m_encoder->priv_data, "preset", settings.GPU_PRESET, 0);
-        av_opt_set(m_encoder->priv_data, "rc", settings.GPU_RC, 0);
+        av_opt_set(m_encoder->priv_data, "preset", settings.GPU_PRESET.c_str(), 0);
+        av_opt_set(m_encoder->priv_data, "rc", settings.GPU_RC.c_str(), 0);
         av_opt_set_int(m_encoder->priv_data, "cq", settings.GPU_CQ, 0);
     } else {
-        av_opt_set(m_encoder->priv_data, "preset", settings.CPU_PRESET, 0);
+        av_opt_set(m_encoder->priv_data, "preset", settings.CPU_PRESET.c_str(), 0);
         av_opt_set_int(m_encoder->priv_data, "crf", settings.CPU_CRF, 0);
     }
 
@@ -108,7 +109,7 @@ void VideoOutput::finish() {
     m_finished = true;
 }
 
-const AVCodec* VideoOutput::selectEncoder(bool gpuRequested, bool& usingGPU) {
+const AVCodec* VideoOutput::m_selectEncoder(bool gpuRequested, bool& usingGPU) {
     const AVCodec* encoder = nullptr;
 
     if (gpuRequested) {

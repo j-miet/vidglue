@@ -7,7 +7,7 @@ extern "C" {
 
 #include <memory>
 
-#include "Structs.hpp"
+#include "structs.hpp"
 
 class VideoInput {
   public:
@@ -22,7 +22,6 @@ class VideoInput {
     VideoInput& operator=(VideoInput&&) = default;
 
     bool decodeNextFrame();
-    void checkDecoderHW();
 
     AVFrame* getFrame() const { return m_frame.get(); }
     int getAudioStreamIndex() const;
@@ -32,6 +31,8 @@ class VideoInput {
     int getVideoStreamIndex() const { return m_streamIndex; }
 
   private:
+    void m_checkDecoderHW();
+
     std::unique_ptr<AVFormatContext, FormatDeleter> m_format;
     std::unique_ptr<AVCodecContext, CodecDeleter> m_decoder;
     std::unique_ptr<AVFrame, FrameDeleter> m_frame;

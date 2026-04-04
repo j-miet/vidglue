@@ -6,7 +6,7 @@ extern "C" {
 
 #include <memory>
 
-#include "Structs.hpp"
+#include "structs.hpp"
 
 class Scaler {
   public:

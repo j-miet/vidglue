@@ -7,7 +7,7 @@ extern "C" {
 
 #include <memory>
 
-#include "Structs.hpp"
+#include "structs.hpp"
 
 class VideoOutput {
   public:
@@ -23,7 +23,7 @@ class VideoOutput {
     AVStream* getVideoStream() const { return m_outVideo; }
 
   private:
-    const AVCodec* selectEncoder(bool gpuRequested, bool& usingGPU);
+    const AVCodec* m_selectEncoder(bool gpuRequested, bool& usingGPU);
 
     std::unique_ptr<AVFormatContext, OutputFormatDeleter> m_outFormat;
     std::unique_ptr<AVCodecContext, CodecDeleter> m_encoder;

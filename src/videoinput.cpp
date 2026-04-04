@@ -6,8 +6,8 @@ extern "C" {
 #include <iostream>
 #include <stdexcept>
 
-#include "Utils.hpp"
-#include "VideoInput.hpp"
+#include "utils.hpp"
+#include "videoinput.hpp"
 
 using std::runtime_error;
 
@@ -137,7 +137,7 @@ int VideoInput::getAudioStreamIndex() const {
     return av_find_best_stream(m_format.get(), AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
 }
 
-void VideoInput::checkDecoderHW() {
+void VideoInput::m_checkDecoderHW() {
     // Try to enable CUDA decoding
     if (av_hwdevice_ctx_create(&m_hwDeviceContext,
                                AV_HWDEVICE_TYPE_CUDA,

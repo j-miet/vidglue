@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <iostream>
 
-#include "Utils.hpp"
-#include "VideoComposer.hpp"
+#include "utils.hpp"
+#include "videocomposer.hpp"
 
 VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
                              const std::vector<VideoLayout>& layout,
@@ -56,8 +56,8 @@ void VideoComposer::processGrid(double duration, double speed) {
         double outTime = f / double(m_fps); // output frame time
         double inTime = outTime * speed;    // map output to input time
 
-        clearFrame();
-        composeFrame(inTime);
+        m_clearFrame();
+        m_composeFrame(inTime);
 
         m_outFrame->pts = f;
         m_output.writeFrame(m_outFrame);
@@ -105,10 +105,10 @@ void VideoComposer::processSequential(double previewLimit, double speed, double 
             while (input.getDecodedFrameIndex() < targetFrame && input.decodeNextFrame()) {
             }
 
-            clearFrame();
+            m_clearFrame();
 
             AVFrame* scaled = scaler->scale(input.getFrame());
-            copyToOutput(scaled, layout);
+            m_copyToOutput(scaled, layout);
 
             m_outFrame->pts = outFrameIndex++;
             m_output.writeFrame(m_outFrame);
@@ -123,7 +123,7 @@ void VideoComposer::processSequential(double previewLimit, double speed, double 
         }
 
         if (i < m_inputs.size() - 1) { // don't add pause frames at the end of final video
-            clearFrame();
+            m_clearFrame();
             for (int p = 0; p < pauseFrames; p++) {
                 m_outFrame->pts = outFrameIndex++;
                 m_output.writeFrame(m_outFrame);
@@ -134,19 +134,20 @@ void VideoComposer::processSequential(double previewLimit, double speed, double 
     }
 }
 
-void VideoComposer::clearFrame() {
+void VideoComposer::m_clearFrame() {
     memset(m_outFrame->data[0], 0, m_outFrame->linesize[0] * m_outH);
     memset(m_outFrame->data[1], 128, m_outFrame->linesize[1] * (m_outH / 2));
     memset(m_outFrame->data[2], 128, m_outFrame->linesize[2] * (m_outH / 2));
 }
 
 // for grid layouts only
-void VideoComposer::composeFrame(double inTime) {
+void VideoComposer::m_composeFrame(double inTime) {
     for (size_t i = 0; i < m_inputs.size(); i++) {
         auto& input = m_inputs[i];
 
         int targetFrame = int(std::floor(inTime * m_inputFPS[i]));
 
+        // decode frames until target is reached
         while (input.getDecodedFrameIndex() < targetFrame && input.decodeNextFrame()) {
         }
     }
@@ -155,11 +156,11 @@ void VideoComposer::composeFrame(double inTime) {
 #pragma omp parallel for
     for (size_t i = 0; i < m_inputs.size(); i++) {
         auto scaled = m_scalers[i]->scale(m_inputs[i].getFrame());
-        copyToOutput(scaled, m_layout[i]);
+        m_copyToOutput(scaled, m_layout[i]);
     }
 }
 
-void VideoComposer::copyToOutput(AVFrame* src, const VideoLayout& l) {
+void VideoComposer::m_copyToOutput(AVFrame* src, const VideoLayout& l) {
     // YUV format
     // Y plane
     for (int y = 0; y < l.h; y++)
