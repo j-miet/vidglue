@@ -1,8 +1,10 @@
 .vscode
 bin
 
-# no test videos
+# no test videos, release zips or executables
 *.mp4
+release/*.zip
+release/**/*.exe
 
 # other
 temp
