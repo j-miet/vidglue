@@ -58,3 +58,12 @@ depending how decoder calls would mess with one another
 
 Could try again at some point. But knowing how much work it requires vs how much performance increase it's likely to
 give, might also just ignore this entirely
+
+
+### Exceptions
+
+- codebase includes a lot of std::runtime_error exceptions. Normally these are costly to use and slow program down when
+caught and handled
+- however in vidglue this is not an issue. They are pretty much tied to ffmpeg logic: when ffmpeg function returns 
+value < 0, it almost always signals a fatal error (e.g. output video will not work) and processes should stop at once.
+- so runtime errors **should** crash the tool and no catching is needed
