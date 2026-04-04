@@ -6,32 +6,60 @@ extern "C" {
 }
 
 #include <string>
+#include <vector>
+
+enum class RenderMode {
+    GRID,
+    SEQUENTIAL
+};
 
 /// @brief Layout for a single input video
 struct VideoLayout {
     int x{}, y{}, w{}, h{};
 };
 
+/// @brief Data read from input config file
+struct InputConfig {
+    RenderMode mode;
+    std::vector<std::string> inputs;
+    std::string output;
+    std::vector<VideoLayout> layout;
+    int outW;
+    int outH;
+    int fps;
+    double previewDuration;
+    double pauseDuration;
+    int scalerFlags;
+    double speedMultiplier;
+    int progressTimestamp;
+    bool useGpu;
+    std::string gpuPreset;
+    std::string gpuRc;
+    int gpuCq;
+    std::string cpuPreset;
+    int cpuCrf;
+    int bFrames;
+};
+
 /// @brief Settings passed to VideoOutput constructor
 struct OutputSettings {
-    const std::string FILENAME{"output.mp4"};
-    const int OUTPUT_W{0};
-    const int OUTPUT_H{0};
-
-    const int FPS{30};
-    const bool GPU{true};
+    const std::string FILENAME;
+    const int OUTPUT_W;
+    const int OUTPUT_H;
+    const int FPS;
+    const bool GPU;
 
     // GPU
-    const char* GPU_PRESET{"p3"}; // p1-p7; p1 slow/best compression -> p7 fast/weak compression
-    const int GPU_CQ{23};         // 0-51; default is 23. Lower value = higher quality, larger file size
-    const char* GPU_RC{"cqp"};    // Values: cqp, vbr, cbr, vbr_hq -> bitrate = // quality but larger file size
+    const std::string GPU_PRESET; // p1-p7; p1 slow/best compression -> p7 fast/weak compression
+    const int GPU_CQ;             // 0-51; default is 23. Lower value = higher quality, larger file size
+    const std::string GPU_RC;     // Values: cqp, vbr, cbr, vbr_hq -> bitrate = // quality but larger file size
 
     // CPU; similar to CPU
-    const char* CPU_PRESET{"veryfast"}; // veryslow/slower/slow/medium/fast/faster/veryfast/superfast/ultrafast
-    const int CPU_CRF{23};
+    const std::string CPU_PRESET; // veryslow/slower/slow/medium/fast/faster/veryfast/superfast/ultrafast
+    const int CPU_CRF;
 
     // B-frames
-    const int MAX_B_FRAMES{2}; // 0-2 is default range for GPU, CPU often uses 3-4. Thus 2 is good default.
+    const int MAX_B_FRAMES; // 0-2 is default range for GPU, CPU often uses 3-4. Thus 2 is good default.
 };
 
 // deleters for unique_ptr
