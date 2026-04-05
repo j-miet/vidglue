@@ -10,6 +10,7 @@ RELEASE_ROOT_DIR="$PROJECT_ROOT/release"
 RELEASE_DIR="$RELEASE_ROOT_DIR/vidglue-$WIN_VERSION_NUMBER"
 EXE_NAME=vidglue
 EXE_PATH="$BIN_DIR/$EXE_NAME"
+CONFIG_PATH="$PROJECT_ROOT/config.json"
 
 # FFmpeg DLLs location for MinGW64
 FFMPEG_BIN="/c/msys64/mingw64/bin"
@@ -31,8 +32,9 @@ g++ $CPP_FILES \
     $(pkg-config --cflags --libs libavformat libavcodec libavutil libswscale) \
     -static-libgcc -static-libstdc++
 
-# copy executable
+# copy executable and config
 cp "$EXE_PATH" "$RELEASE_DIR/"
+cp "$CONFIG_PATH" "$RELEASE_DIR/"
 
 # copy FFmpeg + other MinGW64 DLLs for dynamic linking
 DLLS=(
