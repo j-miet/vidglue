@@ -67,3 +67,16 @@ caught and handled
 - however in vidglue this is not an issue. They are pretty much tied to ffmpeg logic: when ffmpeg function returns 
 value < 0, it almost always signals a fatal error (e.g. output video will not work) and processes should stop at once.
 - so runtime errors **should** crash the tool and no catching is needed
+
+### Pointer syntax
+
+- raw pointers use syntax `type* var` i.e. pointer is on the side of type
+- this clearly differentiates use of `*` symbol in 3 different cases:
+    1. raw pointers: left side of expression, tied to type i.e. `a* b`
+    2. product operator: in the middle of type and name i.e. `a * b`
+    3. pointer dereferencing: right side of expression, tied to name i.e. `a *b`
+
+    Examples:  
+    1. `int* a` is a int pointer
+    2. `a * b` is a product of a and b when both a, b are numerical types
+    3. if `int* a` then `*a` dereferences and produces int type
