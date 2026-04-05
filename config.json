@@ -17,7 +17,7 @@
     "progressTimestamps": 100,
     "useGpu": true,
     "gpuPreset": "p3",
-    "gpuRc": "crf",
+    "gpuRc": "vbr",
     "gpuCq": 23,
     "cpuPreset": "veryfast",
     "cpuCrf": 23,
