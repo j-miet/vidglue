@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <execution>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "structs.hpp"
@@ -9,11 +10,10 @@
 #include "videoinput.hpp"
 #include "videooutput.hpp"
 
-// TODO add CLI args (config file is used with -config)
 int main() {
     av_log_set_level(AV_LOG_QUIET);
 
-    // load configuration from config.json
+    // load config data
     InputConfig config{};
     if (!Utils::readInputConfig(config))
         return 1;
@@ -49,17 +49,19 @@ int main() {
 
         maxDuration = std::max(maxDuration, v.getDuration()); // get duration of longest input
 
-        v.decodeNextFrame(); // pre-decode first frame
+        v.decodeNextFrame(); // pre-decode first frame for test purposes
     }
 
     // setup output streams and write header
     VideoOutput out(SETTINGS);
 
-    // because audio will be copied from first input without resampling, use it for stream creation
-    int audioStream = inputs[0].getAudioStreamIndex();
-    if (audioStream >= 0) {
-        AVStream* inAudio = inputs[0].getFormatContext()->streams[audioStream];
-        out.addAudioStream(inAudio);
+    // because audio will be copied from first input without resampling, use it for output stream creation
+    if (config.audioEnabled) {
+        int audioStream = inputs[0].getAudioStreamIndex();
+        if (audioStream >= 0) {
+            AVStream* inAudio = inputs[0].getFormatContext()->streams[audioStream];
+            out.addAudioStream(inAudio);
+        }
     }
 
     out.writeHeader();
@@ -73,23 +75,27 @@ int main() {
         composer.processGrid(adjustedDuration, config.speedMultiplier);
         Utils::showProgress(100.0, adjustedDuration, adjustedDuration);
 
-        std::cout << "\nCopying audio...\n";
-        Utils::copyAudio(inputs[0], out.getFormatContext(), adjustedDuration); // copy audio from the first input
+        if (config.audioEnabled) {
+            std::cout << "\nCopying audio...\n";
+            Utils::copyAudio(inputs[0], out.getFormatContext(), adjustedDuration); // copy audio from the first input
+        }
     } else {
         VideoComposer composer(inputs, config.layout, out, config.outW, config.outH, config.fps, inputFPS,
                                config.scalerFlags, config.progressTimestamp);
         composer.processSequential(config.previewDuration, config.speedMultiplier, config.pauseDuration);
 
-        // lazy audio copying + create silence during pauses by skipping timestamps
-        std::cout << "\nCopying audio...\n";
-        int outAudioIndex = 1; // video is usually in index 0, audio in 1
-        Utils::copyAudioSequential(
-            inputs,
-            out.getFormatContext(),
-            outAudioIndex,
-            config.previewDuration,
-            config.speedMultiplier,
-            config.pauseDuration);
+        if (config.audioEnabled) {
+            // lazy audio copying + create silence during pauses by skipping timestamps
+            std::cout << "\nCopying audio...\n";
+            int outAudioIndex = 1; // video is usually in index 0, audio in 1
+            Utils::copyAudioSequential(
+                inputs,
+                out.getFormatContext(),
+                outAudioIndex,
+                config.previewDuration,
+                config.speedMultiplier,
+                config.pauseDuration);
+        }
     }
 
     std::cout << "\nFinishing...\n";
@@ -97,5 +103,7 @@ int main() {
     out.finish();
 
     std::cout << "\nDone!\n";
+    std::cout << "Press enter to close this window" << std::endl;
+    std::cin.get();
     return 0;
 }
