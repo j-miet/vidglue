@@ -171,7 +171,8 @@ void VideoComposer::m_composeFrame(double inTime) {
         }
     }
 
-// OpenMP parallelization only after decoding
+// OpenMP parallelization only after decoding. Frame decoding doesn't need this as it already uses ffmpeg's own
+// internal threading. Mixing omp wouldn't likely improve anything but rather hinder performance
 #pragma omp parallel for
     for (size_t i = 0; i < m_inputs.size(); i++) {
         auto scaled = m_scalers[i]->scale(m_inputs[i].getFrame());
