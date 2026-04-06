@@ -10,6 +10,7 @@ extern "C" {
 #include "videoinput.hpp"
 #include "videooutput.hpp"
 
+/// @brief Compose inputs into a single output
 class VideoComposer {
   public:
     VideoComposer(std::vector<VideoInput>& inputs,

@@ -9,6 +9,7 @@ extern "C" {
 
 #include "structs.hpp"
 
+/// @brief Input video
 class VideoInput {
   public:
     explicit VideoInput(const std::string& filename);

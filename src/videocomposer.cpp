@@ -1,9 +1,21 @@
 #include <assert.h>
+#include <omp.h>
+
 #include <iostream>
 
 #include "utils.hpp"
 #include "videocomposer.hpp"
 
+/// @brief Video composer
+/// @param inputs Input videos
+/// @param layout Position and size of each input. Is calculated relative to background canvas.
+/// @param output Output video
+/// @param outW Output width
+/// @param outH Output height
+/// @param fps Output fps
+/// @param inputFPS Input fps
+/// @param flags Scaling algorithm flags
+/// @param progressTimeStamp Spacing between progress update prints
 VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
                              const std::vector<VideoLayout>& layout,
                              VideoOutput& output,
@@ -45,6 +57,9 @@ VideoComposer::~VideoComposer() {
     av_frame_free(&m_outFrame);
 }
 
+/// @brief Perform composing process for grid layouts
+/// @param duration Output duration
+/// @param speed Speed multiplier applied to all inputs
 void VideoComposer::processGrid(double duration, double speed) {
     int64_t totalFrames = std::ceil(duration * m_fps);
     double currentProgress = 0;
@@ -73,7 +88,11 @@ void VideoComposer::processGrid(double duration, double speed) {
     }
 }
 
-void VideoComposer::processSequential(double previewLimit, double speed, double pauseSeconds) {
+/// @brief Perform composing process for sequential layouts
+/// @param duration Output duration. Applied to each video individually e.g. 3x videos, each 10sec -> output is 30sec
+/// @param speed Speed multiplier
+/// @param pauseSeconds Pause frame lengths between videos
+void VideoComposer::processSequential(double duration, double speed, double pauseSeconds) {
     int64_t outFrameIndex = 0;
     int pauseFrames = int(pauseSeconds * m_fps);
 
@@ -83,10 +102,10 @@ void VideoComposer::processSequential(double previewLimit, double speed, double 
         auto& layout = m_layout[i];
         auto& scaler = m_scalers[i];
 
-        double duration = input.getDuration();
+        double inputDuration = input.getDuration();
         // in sequential outputs, preview is applied to each input
-        // E.g. 2x videos -> previewLimit = 5.0 -> render first 5 secs of both -> output is 10 sec + pauses
-        double displayMax = (previewLimit > 0) ? std::min(duration, previewLimit) : duration;
+        // E.g. 2x videos -> duration = 5.0 -> render first 5 secs of both -> output is 10 sec + pauses
+        double displayMax = (duration > 0) ? std::min(inputDuration, duration) : inputDuration;
         double adjustedDuration = displayMax / speed;
 
         int64_t totalFrames = int64_t(std::ceil(adjustedDuration * m_fps));
@@ -140,8 +159,8 @@ void VideoComposer::m_clearFrame() {
     memset(m_outFrame->data[2], 128, m_outFrame->linesize[2] * (m_outH / 2));
 }
 
-// for grid layouts only
 void VideoComposer::m_composeFrame(double inTime) {
+    // for grid layouts only
     for (size_t i = 0; i < m_inputs.size(); i++) {
         auto& input = m_inputs[i];
 

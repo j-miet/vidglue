@@ -3,13 +3,17 @@
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 
+#include "json.hpp" // https://github.com/nlohmann/json/blob/develop/single_include/nlohmann/json.hpp, is MIT licensed
 #include "utils.hpp"
 #include "videoinput.hpp"
 
-#include "json.hpp" // https://github.com/nlohmann/json/blob/develop/single_include/nlohmann/json.hpp, is MIT licensed
 using json = nlohmann::json;
 
+/// @brief Reads external config json file and fills InputConfig with data
+/// @param config InputConfig to pass data
+/// @return Whether loading inputs was successful or not
 bool Utils::readInputConfig(InputConfig& config) {
     std::string configFile{"config.json"};
 
@@ -35,22 +39,37 @@ bool Utils::readInputConfig(InputConfig& config) {
     config.inputs = inputs;
     config.output = j.at("output");
 
-    // layouts
+    // layout
     std::vector<VideoLayout> vidLayouts{};
     for (auto l : j.at("layout")) {
-        VideoLayout layout = {l[0], l[1], l[2], l[3]};
-        vidLayouts.push_back(layout);
+        VideoLayout vLayout = {l[0], l[1], l[2], l[3]};
+        vidLayouts.push_back(vLayout);
     }
     config.layout = vidLayouts;
 
     config.outW = j.at("outWidth");
     config.outH = j.at("outHeight");
     config.fps = j.at("fps");
+    config.audioEnabled = j.at("audioEnabled");
     config.previewDuration = j.at("previewDuration");
     config.pauseDuration = j.at("pauseDuration");
 
+    // scaling algorithm flags (primary, optional flags could be added later)
     int flags = j.at("scalerFlags");
-    config.scalerFlags = (flags == 0) ? SWS_FAST_BILINEAR : SWS_BILINEAR;
+    int selected = 1;
+    switch (flags) {
+    case 0:
+        selected = SWS_FAST_BILINEAR;
+    case 1:
+        selected = SWS_BILINEAR;
+    case 2:
+        selected = SWS_BICUBIC;
+    case 3:
+        selected = SWS_LANCZOS;
+    default:
+        selected = SWS_BILINEAR;
+    }
+    config.scalerFlags = selected;
 
     config.speedMultiplier = j.at("speedMultiplier");
     config.progressTimestamp = j.at("progressTimestamps");
@@ -66,6 +85,10 @@ bool Utils::readInputConfig(InputConfig& config) {
     return true;
 }
 
+/// @brief Display a progress message
+/// @param percent Percentage of completion (0.0-100.0)
+/// @param current Current time (out of total)
+/// @param total Total time expectancy
 void Utils::showProgress(double percent, double current, double total) {
     percent = std::min(100.0, std::round(percent * 10.0) / 10.0); // round to a single decimal
 
@@ -90,6 +113,10 @@ void Utils::showProgress(double percent, double current, double total) {
     std::cout.flush();
 }
 
+/// @brief Copies audio from input video to output
+/// @param input Video input
+/// @param outFormat Output video format pointer
+/// @param maxTime How much audio is copied in seconds. Should match video length.
 void Utils::copyAudio(VideoInput& input, AVFormatContext* outFormat, double maxTime) {
     int audioStreamIndex = input.getAudioStreamIndex();
     if (audioStreamIndex < 0) {
@@ -132,6 +159,13 @@ void Utils::copyAudio(VideoInput& input, AVFormatContext* outFormat, double maxT
     }
 }
 
+/// @brief Copy audio from sequence of video inputs into one. Can insert phantom noise (= no audio) between videos.
+/// @param inputs Videos to be sequenced in order
+/// @param outFormat Output format
+/// @param outAudioStreamIndex Output audio index (1 should always work here)
+/// @param previewLimit How many seconds of each video gets rendered starting from the beginning
+/// @param speed Video speed multiplier
+/// @param pauseSeconds Seconds of black frames (transition) between videos
 void Utils::copyAudioSequential(std::vector<VideoInput>& inputs, AVFormatContext* outFormat, int outAudioStreamIndex,
                                 double previewLimit, double speed, double pauseSeconds) {
     int64_t ptsOffset = 0;

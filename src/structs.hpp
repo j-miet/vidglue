@@ -8,6 +8,7 @@ extern "C" {
 #include <string>
 #include <vector>
 
+/// @brief Output render modes
 enum class RenderMode {
     GRID,
     SEQUENTIAL
@@ -27,6 +28,7 @@ struct InputConfig {
     int outW;
     int outH;
     int fps;
+    bool audioEnabled;
     double previewDuration;
     double pauseDuration;
     int scalerFlags;
@@ -48,21 +50,16 @@ struct OutputSettings {
     const int OUTPUT_H;
     const int FPS;
     const bool GPU;
-
-    // GPU
-    const std::string GPU_PRESET; // p1-p7; p1 slow/best compression -> p7 fast/weak compression
-    const int GPU_CQ;             // 0-51; default is 23. Lower value = higher quality, larger file size
-    const std::string GPU_RC;     // Values: cqp, vbr, cbr, vbr_hq -> bitrate = // quality but larger file size
-
-    // CPU; similar to CPU
-    const std::string CPU_PRESET; // veryslow/slower/slow/medium/fast/faster/veryfast/superfast/ultrafast
+    const std::string GPU_PRESET;
+    const int GPU_CQ;
+    const std::string GPU_RC;
+    const std::string CPU_PRESET;
     const int CPU_CRF;
-
-    // B-frames
-    const int MAX_B_FRAMES; // 0-2 is default range for GPU, CPU often uses 3-4. Thus 2 is good default.
+    const int MAX_B_FRAMES;
 };
 
 // deleters for unique_ptr
+
 struct OutputFormatDeleter {
     void operator()(AVFormatContext* ctx) const {
         if (!ctx)

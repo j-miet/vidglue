@@ -6,6 +6,8 @@
 
 using std::runtime_error;
 
+/// @brief Setup an output video + encoder
+/// @param settings Settings, mostly for configuring encoder
 VideoOutput::VideoOutput(const OutputSettings& settings) {
     bool usingGPU = false;
     const AVCodec* encoder = m_selectEncoder(settings.GPU, usingGPU);
@@ -59,6 +61,8 @@ VideoOutput::~VideoOutput() {
     finish();
 }
 
+/// @brief Add an audio stream to output video by copying it from input
+/// @param inAudio Input audio
 void VideoOutput::addAudioStream(AVStream* inAudio) {
     AVStream* outAudio = avformat_new_stream(m_outFormat.get(), nullptr);
     if (!outAudio)
@@ -70,11 +74,14 @@ void VideoOutput::addAudioStream(AVStream* inAudio) {
     outAudio->time_base = inAudio->time_base;
 }
 
+/// @brief Write a output video header. Make sure you have attached both video and audio outputs before calling this.
 void VideoOutput::writeHeader() {
     if (avformat_write_header(m_outFormat.get(), nullptr) < 0)
         throw runtime_error("Failed to write header");
 }
 
+/// @brief Encode a single frame and write package into output
+/// @param frame Raw frame to be encoded
 void VideoOutput::writeFrame(AVFrame* frame) {
     AVPacket* pkt{av_packet_alloc()};
 
@@ -88,6 +95,7 @@ void VideoOutput::writeFrame(AVFrame* frame) {
     }
 }
 
+/// @brief Ensure all packets are written, write trailer and close output file
 void VideoOutput::finish() {
     if (m_finished)
         return;

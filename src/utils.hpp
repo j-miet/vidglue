@@ -8,6 +8,7 @@ extern "C" {
 #include "structs.hpp"
 #include "videoinput.hpp"
 
+/// @brief Utility functions, handles also audio copying.
 class Utils {
   public:
     static bool readInputConfig(InputConfig& config);

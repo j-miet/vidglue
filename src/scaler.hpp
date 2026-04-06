@@ -8,10 +8,10 @@ extern "C" {
 
 #include "structs.hpp"
 
+/// @brief Input video resizing
 class Scaler {
   public:
     Scaler(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, int flags);
-    // default destructor is fine
 
     AVFrame* scale(const AVFrame* input);
 

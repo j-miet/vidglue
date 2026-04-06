@@ -22,6 +22,8 @@ AVPixelFormat VideoInput::get_hw_format(AVCodecContext* ctx,
     return pix_fmts[0];
 }
 
+/// @brief Initialize an input video + decoder
+/// @param filename Path to video file
 VideoInput::VideoInput(const std::string& filename) {
     AVFormatContext* fmt = nullptr;
 
@@ -72,6 +74,8 @@ VideoInput::~VideoInput() {
         av_buffer_unref(&m_hwDeviceContext);
 }
 
+/// @brief Decode next frame from input
+/// @return Whether decoding was successful or not. This could be because of error or EOF.
 bool VideoInput::decodeNextFrame() {
     if (m_eof)
         return false;
@@ -125,6 +129,7 @@ bool VideoInput::decodeNextFrame() {
     }
 }
 
+/// @brief Get duration of input video
 double VideoInput::getDuration() const {
     if (!m_format || m_streamIndex < 0)
         throw runtime_error("Invalid state");
@@ -133,6 +138,7 @@ double VideoInput::getDuration() const {
     return stream->duration * av_q2d(stream->time_base);
 }
 
+/// @brief Get index of first audio stream
 int VideoInput::getAudioStreamIndex() const {
     return av_find_best_stream(m_format.get(), AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
 }

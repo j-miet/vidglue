@@ -9,6 +9,7 @@ extern "C" {
 
 #include "structs.hpp"
 
+/// @brief Output video
 class VideoOutput {
   public:
     VideoOutput(const OutputSettings& settings);

@@ -2,6 +2,13 @@
 
 #include "scaler.hpp"
 
+/// @brief Creates a scaler for source video
+/// @param srcW source width
+/// @param srcH source height
+/// @param srcFmt source format
+/// @param dstW output width
+/// @param dstH output height
+/// @param flags scaling algorithm flags
 Scaler::Scaler(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, int flags) {
     m_context.reset(sws_getContext(
         srcW, srcH, srcFmt,
@@ -21,6 +28,9 @@ Scaler::Scaler(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, int
         throw std::runtime_error("Failed to allocate frame buffer");
 }
 
+/// @brief Scales an input frame
+/// @param input Pointer to constant input frame
+/// @return Pointer to scaled frame
 AVFrame* Scaler::scale(const AVFrame* input) {
     sws_scale(m_context.get(),
               input->data, input->linesize, 0, input->height,
