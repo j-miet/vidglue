@@ -2,7 +2,7 @@
 
 **Run these only inside the *scripts* directory, don't move them outside.**
 
-### build_dev
+### build_win
 
 - Builds executable from .cpp files and runs it. 
 - Inputs are read from root folder so place any test videos here.
@@ -16,3 +16,6 @@ installed in MinGW and cannot be simply run by double clicking the executable.
     - tested static linking, but it was a mess so .exe + dlls is the way to go
 - creates a zip file containing vidglue.exe + required dlls
 
+### build_linux
+
+- same as build_win, just make sure you have installed ffmpeg dependencies + pkg-config

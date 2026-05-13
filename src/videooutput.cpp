@@ -127,11 +127,14 @@ const AVCodec* VideoOutput::m_selectEncoder(bool gpuRequested, bool& usingGPU) {
             std::cout << "Using NVENC GPU encoder\n";
             return encoder;
         }
-        std::cout << "GPU requested but not available, falling back\n";
+        std::cout << "GPU requested but not available, falling back to CPU\n";
     }
 
     usingGPU = false;
-    encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
+
+    encoder = avcodec_find_encoder_by_name("libx264");
+    if (!encoder)
+        encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
     std::cout << "Using CPU encoder\n";
     return encoder;
 }
