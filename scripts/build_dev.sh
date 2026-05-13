@@ -1,5 +1,4 @@
 #!/bin/bash
-chmod +x build_dev.sh
 export PATH=/mingw64/bin:$PATH
 cd "../"
 g++ $(find src -name '*.cpp') \
