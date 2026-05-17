@@ -35,8 +35,48 @@ VideoOutput::VideoOutput(const OutputSettings& settings) {
         av_opt_set_int(m_encoder->priv_data, "crf", settings.CPU_CRF, 0);
     }
 
-    if (avcodec_open2(m_encoder.get(), encoder, nullptr) < 0)
-        throw runtime_error("Failed to open encoder");
+    int encError = avcodec_open2(m_encoder.get(), encoder, nullptr);
+
+    // found nvenc support, but still incompatible -> back to CPU
+    if (encError && usingGPU) {
+        std::cout << "NVENC failed, falling back to CPU\n";
+
+        usingGPU = false;
+
+        const AVCodec* cpu = m_selectEncoder(false, usingGPU);
+
+        // re-initialize
+        codec = avcodec_alloc_context3(cpu);
+        if (!codec)
+            throw runtime_error("Failed to allocate encoder");
+
+        m_encoder.reset(codec);
+        m_encoder->width = settings.OUTPUT_W;
+        m_encoder->height = settings.OUTPUT_H;
+        m_encoder->pix_fmt = AV_PIX_FMT_YUV420P;
+        m_encoder->time_base = {1, settings.FPS};
+        m_encoder->max_b_frames = settings.MAX_B_FRAMES;
+        m_encoder->thread_count = 0;
+        m_encoder->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
+
+        if (usingGPU) {
+            av_opt_set(m_encoder->priv_data, "preset", settings.GPU_PRESET.c_str(), 0);
+            av_opt_set(m_encoder->priv_data, "rc", settings.GPU_RC.c_str(), 0);
+            av_opt_set_int(m_encoder->priv_data, "cq", settings.GPU_CQ, 0);
+        } else {
+            av_opt_set(m_encoder->priv_data, "preset", settings.CPU_PRESET.c_str(), 0);
+            av_opt_set_int(m_encoder->priv_data, "crf", settings.CPU_CRF, 0);
+        }
+
+        encError = avcodec_open2(m_encoder.get(), cpu, nullptr);
+    }
+
+    // if encoder still fails even on cpu
+    if (encError < 0) {
+        char errbuf[AV_ERROR_MAX_STRING_SIZE];
+        av_strerror(encError, errbuf, sizeof(errbuf));
+        throw runtime_error(std::string("Failed to open encoder: ") + errbuf);
+    }
 
     AVFormatContext* fmt = nullptr;
     if (avformat_alloc_output_context2(&fmt, nullptr, nullptr, settings.FILENAME.c_str()) < 0)
