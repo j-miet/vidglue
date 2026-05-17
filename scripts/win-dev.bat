@@ -15,6 +15,6 @@ SET MSYS_PROJECT_DIR=%MSYS_PROJECT_DIR::=%
 SET MSYS_PROJECT_DIR=/%MSYS_PROJECT_DIR:\=/%
 
 REM Run MSYS2 bash with proper PATH and project folder, run bash script then cd into root folder.
-"%MSYS2_BASH%" -lc "export PATH=/mingw64/bin:$PATH && cd $MSYS_PROJECT_DIR && ./build_win.sh && cd ./.. && ./bin/vidglue.exe"
+"%MSYS2_BASH%" -lc "export PATH=/mingw64/bin:$PATH && cd $MSYS_PROJECT_DIR && ./win-dev.sh && cd ./.. && ./bin/vidglue.exe"
 
 pause

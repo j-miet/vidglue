@@ -2,7 +2,8 @@
 set -e
 set -x  # show commands
 
-WIN_VERSION_NUMBER="v0.1-win64"
+VERSION="v0.1.1-win64"
+
 PROJECT_ROOT="$(pwd)/.."
 SRC_DIR="$PROJECT_ROOT/src"
 BIN_DIR="$PROJECT_ROOT/bin"

@@ -1,6 +1,6 @@
 ## Windows
 
-On Windows, building is not really necessary as prebuild dlls already exist:
+On Windows, building is not really necessary as pre-build dlls already exist:
 
 Use either:
 
@@ -25,14 +25,38 @@ Therefore this is the preferred way.
 
 ## Linux
 
-- sudo apt install libx264-dev (for performant CPU encoding, this can depend on used distro)
-- for ffmpeg dependencies, just do
+- for dependencies, just do
 
     ```bash
-    sudo apt install libavcodec-dev libavformat-dev libavutil-dev libswscale-dev pkg-config
+    sudo apt install libavcodec-dev libavformat-dev libavutil-dev libswscale-dev pkg-config libx264-dev
     ```
+    libx264 enables performant CPU encoding (and program would crash without it anyway)
+
 
 - also make sure you have fopenmp support available with
 `sudo apt install libgomp1 libgomp-plugin-dev`, probably already there with GCC
 
 - then just compile with build_dev.sh script
+
+
+#### Using executable
+
+on Linux user should install actual versions instead of dev packages. Easiest way is to just install ffmpeg itself:
+
+```bash
+sudo apt install ffmpeg
+```
+
+Because packages depend on used distro, this command gets up-to-date ones instead of needing to find specific versions.
+
+Otherwise use this:
+
+```bash
+sudo apt install libavcodec62 libavformat62 libavutil60 libswscale9 libx264-165
+```
+
+
+This matches the Windows Dll dynamic linking logic.
+
+With these vidglue should operate as expected.
+
