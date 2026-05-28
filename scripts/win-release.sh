@@ -2,13 +2,13 @@
 set -e
 set -x  # show commands
 
-VERSION="v0.1.1-win64"
+VERSION="v0.1.2-win64"
 
 PROJECT_ROOT="$(pwd)/.."
 SRC_DIR="$PROJECT_ROOT/src"
 BIN_DIR="$PROJECT_ROOT/bin"
 RELEASE_ROOT_DIR="$PROJECT_ROOT/release"
-RELEASE_DIR="$RELEASE_ROOT_DIR/vidglue-$WIN_VERSION_NUMBER"
+RELEASE_DIR="$RELEASE_ROOT_DIR/vidglue-$VERSION"
 EXE_NAME=vidglue
 EXE_PATH="$BIN_DIR/$EXE_NAME"
 CONFIG_PATH="$PROJECT_ROOT/config.json"
@@ -58,11 +58,11 @@ for dll_pattern in "${DLLS[@]}"; do
 done
 
 # create zip of vidglue release
-ZIP_FILE="$RELEASE_ROOT_DIR/vidglue-$WIN_VERSION_NUMBER.zip"
+ZIP_FILE="$RELEASE_ROOT_DIR/vidglue-$VERSION.zip"
 if command -v zip >/dev/null 2>&1; then
     rm -f "$ZIP_FILE"
     cd "$RELEASE_ROOT_DIR"
-    zip -r "$ZIP_FILE" vidglue-$WIN_VERSION_NUMBER -x "*.DS_Store"
+    zip -r "$ZIP_FILE" vidglue-$VERSION -x "*.DS_Store"
     echo "Zip created: $ZIP_FILE"
 fi
 

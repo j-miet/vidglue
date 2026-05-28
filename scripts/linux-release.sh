@@ -2,7 +2,7 @@
 set -e
 set -x
 
-VERSION="v0.1.1-linux64"
+VERSION="v0.1.2-linux64"
 
 PROJECT_ROOT="$(pwd)/.."
 SRC_DIR="$PROJECT_ROOT/src"
