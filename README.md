@@ -39,15 +39,25 @@ Only reasons would be:
 
 ## How to use
 
-CLI commands are not currently supported. Instead a JSON configuration file `config.json` is used for everything.
+CLI commands are not currently supported. Instead a JSON configuration file is used for everything.
 
-- if not there already, create a JSON file called `config.json` into same directory where your `vidglue.exe` is 
-located. Easiest way is to just copy one from root dir
+- if not there already, create a JSON file e.g. `config.json`. Easiest way is to just copy one from root dir and then optionally rename it
 - edit the fields to your liking. Use the link below for explanations
+    - full paths are supported so you don't need to have inputs and/or output in same dir with the executable
 - when you're done editing, save config
-- make sure all your input videos are in the same directory with your `vidglue.exe` and run the executable
+- make sure all your input videos are in the same directory with your `vidglue.exe` and run the executable with `-c <configPath>` flag:
 
-Check [this document](./docs/ConfigJSON.md) for full details
+    ```bash
+    vidglue -c config.json
+    ```
+
+    You can also add optional `--wopen` flag which leaves process window open after completion and required user to press enter.
+
+    ```bash
+    vidglue -c config.json --wopen
+    ```
+
+Check [this document](./docs/ConfigJSON.md) for full details on what each config file field means
 
 
 ## Licensing
