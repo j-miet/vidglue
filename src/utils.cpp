@@ -14,8 +14,8 @@ using json = nlohmann::json;
 /// @brief Reads external config json file and fills InputConfig with data
 /// @param config InputConfig to pass data
 /// @return Whether loading inputs was successful or not
-bool Utils::readInputConfig(InputConfig& config) {
-    std::string configFile{"config.json"};
+bool Utils::readInputConfig(char* path, InputConfig& config) {
+    std::string configFile{path};
 
     std::ifstream file(configFile);
 

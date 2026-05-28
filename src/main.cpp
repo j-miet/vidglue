@@ -10,12 +10,17 @@
 #include "videoinput.hpp"
 #include "videooutput.hpp"
 
-int main() {
+int main(int argc, char* argv[]) {
     av_log_set_level(AV_LOG_QUIET);
 
     // load config data
+    if (argc < 3 || std::string(argv[1]) != "-c") {
+        std::cout << "No config file found, use syntax: vidglue -c <configFilePath>\n";
+        return 1;
+    }
+
     InputConfig config{};
-    if (!Utils::readInputConfig(config))
+    if (!Utils::readInputConfig(argv[2], config))
         return 1;
 
     // pass to VideoOutput constructor
@@ -103,7 +108,9 @@ int main() {
     out.finish();
 
     std::cout << "\nDone!\n";
-    std::cout << "Press enter to close this window" << std::endl;
-    std::cin.get();
+    if (argc >= 4 && std::string(argv[3]) == "--wopen") {
+        std::cout << "Press enter to close this window" << std::endl;
+        std::cin.get();
+    }
     return 0;
 }
