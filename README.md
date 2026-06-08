@@ -24,7 +24,6 @@ Only reasons would be:
 - [<u>Licensing</u>](#licensing)
 
 
-
 ## Features
 
 - supports any amount of input videos in grid or sequential layouts:
@@ -50,7 +49,7 @@ Only reasons would be:
     with *progressTimestamps* field in config file, especially when rendering longer, high quality videos
 
 
-## Installation
+## Installation via Makefile
 
 
 ### Linux (Ubuntu/Debian)
@@ -66,7 +65,8 @@ sudo apt install \
     libavformat-dev \
     libavutil-dev \
     libswscale-dev \
-    libx264-dev
+    libx264-dev \
+    build-essential
 ```
 
 Dev packages are for installation, ffmpeg itself for running vidglue.  
@@ -75,16 +75,12 @@ You can verify version with `ffmpeg -version`
 You most likely don't need to install these manually, but in case you do:  
 `sudo apt install libgomp1 libgomp-plugin-dev`
 
-After installing dependencies, you can use the scripts provided in `scripts` directory to produce an executable file:
-- `linux-dev.sh` builds executable into `bin/vidglue`
-    - this doesn't include the config json file, but you can just copy it from root (config.json)
-- `linux-release.sh` builds release version into `release/vidglue-{VERSION}-linux64`
-    - this is the same as build/dev version, just includes config.json
+After installing dependencies, you can use `make release` to generate the release build in `release/vidglue-{VERSION}-linux64`.
 
 
 ### Windows
 
-For simple script installation, you need [MSYS2](https://www.msys2.org/) bash. This section uses MINGW64.
+First make sure you have installed [MSYS2](https://www.msys2.org/) MINGW64 shell.
 
 Following FFmpeg DLLs are dynamically linked to vidglue.exe and thus required to run the executable:
 - avcodec-62.dll
@@ -106,20 +102,15 @@ OR
 - pick release (latest probably the best)
 - pick gpl-shared: this includes the dlls in bin + again supports x264 & nvenc
 
-Simply extract the required dlls to vidglue's bin or release folders OR if this doesn't work for some reason 
-(but it should as it searches locally for dlls first), put them in 
-`C:/msys64/mingw64/bin`
+> Self-build configurations can be less efficient, especially when both Cpu and Gpu (Nvidia) need to be supported.  
+> Therefore downloading the dlls this way is preferred.
 
-Self-build configurations can be less efficient, especially when both Cpu and Gpu (Nvidia) need to be supported. 
-Therefore this is the preferred way.
+You can build executable via makefile:
+- put dlls into `C:/msys64/mingw64/bin` or similar, depending where you installed your msys
+- open MSYS2 MINGW64 terminal
+- run command `make release`
 
-Now that you have ffmpeg dlls installed, running the install scripts should automatically find them and produce the executable:
-
-- `win-dev.bat` builds executable into `bin/vidglue.exe`
-    - this version doesn't copy the dlls with exe so prefer to use the release build script
-- `win-release.bat` builds the release version into `release/vidglue-{VERSION}-winx64` + the same wrapped in a zip file
-    - release includes .exe, all required dynamically linked dlls and config.json. 
-    - this way, no matter where you move this folder, it will always find the dlls locally without errors. Just make sure to keep the exe and dlls always in same place; config.json you can move/rename to different path
+This builds the release version into `release/vidglue-{VERSION}-winx64`. All dlls are includes and should always be kept in the same location with the vidglue.exe
 
 
 ## How to use
