@@ -1,3 +1,7 @@
+# vs code
+.vscode
+
+# binaries
 bin
 
 # no test videos or non-dll release files
@@ -5,3 +9,6 @@ bin
 release/*.zip
 release/**/*.exe
 release/vidglue*
+
+# other files
+required-dlls
