@@ -47,6 +47,5 @@ class VideoInput {
     AVBufferRef* m_hwDeviceContext{nullptr};
     bool m_useHW{false};
 
-    static AVPixelFormat get_hw_format(AVCodecContext* ctx,
-                                       const AVPixelFormat* pix_fmts);
+    static AVPixelFormat get_hw_format(AVCodecContext* ctx, const AVPixelFormat* pix_fmts);
 };

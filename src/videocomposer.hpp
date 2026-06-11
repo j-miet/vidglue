@@ -13,13 +13,8 @@ extern "C" {
 /// @brief Compose inputs into a single output
 class VideoComposer {
   public:
-    VideoComposer(std::vector<VideoInput>& inputs,
-                  const std::vector<VideoLayout>& layout,
-                  VideoOutput& output,
-                  int outW, int outH, int fps,
-                  const std::vector<double>& inputFps,
-                  int flags,
-                  int progressTimeStamp);
+    VideoComposer(std::vector<VideoInput>& inputs, const std::vector<VideoLayout>& layout, VideoOutput& output,
+                  int outW, int outH, int fps, const std::vector<double>& inputFps, int flags, int progressTimeStamp);
     ~VideoComposer();
 
     void processGrid(double duration, double speed);

@@ -97,9 +97,7 @@ VideoOutput::VideoOutput(const OutputSettings& settings) {
         throw runtime_error("Failed to open output file");
 }
 
-VideoOutput::~VideoOutput() {
-    finish();
-}
+VideoOutput::~VideoOutput() { finish(); }
 
 /// @brief Add an audio stream to output video by copying it from input
 /// @param inAudio Input audio

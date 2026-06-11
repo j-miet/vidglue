@@ -16,21 +16,11 @@
 /// @param inputFPS Input fps
 /// @param flags Scaling algorithm flags
 /// @param progressTimeStamp Spacing between progress update prints
-VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
-                             const std::vector<VideoLayout>& layout,
-                             VideoOutput& output,
-                             int outW, int outH, int fps,
-                             const std::vector<double>& inputFPS,
-                             int flags,
-                             int progressTimeStamp)
-    : m_inputs(inputs),
-      m_layout(layout),
-      m_output(output),
-      m_outW(outW),
-      m_outH(outH),
-      m_fps(fps),
-      m_inputFPS(inputFPS),
-      m_progressTT(progressTimeStamp) {
+VideoComposer::VideoComposer(std::vector<VideoInput>& inputs, const std::vector<VideoLayout>& layout,
+                             VideoOutput& output, int outW, int outH, int fps, const std::vector<double>& inputFPS,
+                             int flags, int progressTimeStamp)
+    : m_inputs(inputs), m_layout(layout), m_output(output), m_outW(outW), m_outH(outH), m_fps(fps),
+      m_inputFPS(inputFPS), m_progressTT(progressTimeStamp) {
 
     m_outFrame = av_frame_alloc();
     m_outFrame->format = AV_PIX_FMT_YUV420P;
@@ -41,21 +31,14 @@ VideoComposer::VideoComposer(std::vector<VideoInput>& inputs,
     // create scalers (one per input)
     for (size_t i = 0; i < inputs.size(); i++) {
         auto* f = inputs[i].getFrame();
-        m_scalers.emplace_back(std::make_unique<Scaler>(
-            f->width,
-            f->height,
-            (AVPixelFormat)f->format,
-            layout[i].w,
-            layout[i].h,
-            flags));
+        m_scalers.emplace_back(
+            std::make_unique<Scaler>(f->width, f->height, (AVPixelFormat)f->format, layout[i].w, layout[i].h, flags));
     }
 
     assert(m_scalers.size() == m_inputs.size()); // confirm each input has a scaler
 }
 
-VideoComposer::~VideoComposer() {
-    av_frame_free(&m_outFrame);
-}
+VideoComposer::~VideoComposer() { av_frame_free(&m_outFrame); }
 
 /// @brief Perform composing process for grid layouts
 /// @param duration Output duration
@@ -63,8 +46,7 @@ VideoComposer::~VideoComposer() {
 void VideoComposer::processGrid(double duration, double speed) {
     int64_t totalFrames = std::ceil(duration * m_fps);
     double currentProgress = 0;
-    double progressSplit = (m_progressTT > 0) ? duration / (double)m_progressTT : (m_progressTT == 0) ? 0
-                                                                                                      : -1;
+    double progressSplit = (m_progressTT > 0) ? duration / (double)m_progressTT : (m_progressTT == 0) ? 0 : -1;
     double currentSplit = 0;
 
     for (int64_t f = 0; f < totalFrames; f++) {
@@ -110,8 +92,9 @@ void VideoComposer::processSequential(double duration, double speed, double paus
 
         int64_t totalFrames = int64_t(std::ceil(adjustedDuration * m_fps));
         double currentProgress = 0;
-        double progressSplit = (m_progressTT > 0) ? adjustedDuration / (double)m_progressTT : (m_progressTT == 0) ? 0
-                                                                                                                  : -1;
+        double progressSplit = (m_progressTT > 0)    ? adjustedDuration / (double)m_progressTT
+                               : (m_progressTT == 0) ? 0
+                                                     : -1;
         double currentSplit = 0;
 
         for (int64_t f = 0; f < totalFrames; f++) {
@@ -184,18 +167,15 @@ void VideoComposer::m_copyToOutput(AVFrame* src, const VideoLayout& l) {
     // YUV format
     // Y plane
     for (int y = 0; y < l.h; y++)
-        memcpy(m_outFrame->data[0] + (y + l.y) * m_outFrame->linesize[0] + l.x,
-               src->data[0] + y * src->linesize[0],
+        memcpy(m_outFrame->data[0] + (y + l.y) * m_outFrame->linesize[0] + l.x, src->data[0] + y * src->linesize[0],
                l.w);
 
     // U and V planes
     for (int y = 0; y < l.h / 2; y++) {
         memcpy(m_outFrame->data[1] + (y + l.y / 2) * m_outFrame->linesize[1] + l.x / 2,
-               src->data[1] + y * src->linesize[1],
-               l.w / 2);
+               src->data[1] + y * src->linesize[1], l.w / 2);
 
         memcpy(m_outFrame->data[2] + (y + l.y / 2) * m_outFrame->linesize[2] + l.x / 2,
-               src->data[2] + y * src->linesize[2],
-               l.w / 2);
+               src->data[2] + y * src->linesize[2], l.w / 2);
     }
 }

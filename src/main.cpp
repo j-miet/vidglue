@@ -24,18 +24,9 @@ int main(int argc, char* argv[]) {
         return 1;
 
     // pass to VideoOutput constructor
-    const OutputSettings SETTINGS = {
-        config.output,
-        config.outW,
-        config.outH,
-        config.fps,
-        config.useGpu,
-        config.gpuPreset,
-        config.gpuCq,
-        config.gpuRc,
-        config.cpuPreset,
-        config.cpuCrf,
-        config.bFrames};
+    const OutputSettings SETTINGS = {config.output,    config.outW,      config.outH,   config.fps,
+                                     config.useGpu,    config.gpuPreset, config.gpuCq,  config.gpuRc,
+                                     config.cpuPreset, config.cpuCrf,    config.bFrames};
 
     std::vector<VideoInput> inputs;
     std::vector<double> inputFPS;
@@ -93,13 +84,8 @@ int main(int argc, char* argv[]) {
             // lazy audio copying + create silence during pauses by skipping timestamps
             std::cout << "\nCopying audio...\n";
             int outAudioIndex = 1; // video is usually in index 0, audio in 1
-            Utils::copyAudioSequential(
-                inputs,
-                out.getFormatContext(),
-                outAudioIndex,
-                config.previewDuration,
-                config.speedMultiplier,
-                config.pauseDuration);
+            Utils::copyAudioSequential(inputs, out.getFormatContext(), outAudioIndex, config.previewDuration,
+                                       config.speedMultiplier, config.pauseDuration);
         }
     }
 

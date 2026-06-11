@@ -58,16 +58,16 @@ bool Utils::readInputConfig(char* path, InputConfig& config) {
     int flags = j.at("scalerFlags");
     int selected = 1;
     switch (flags) {
-    case 0:
-        selected = SWS_FAST_BILINEAR;
-    case 1:
-        selected = SWS_BILINEAR;
-    case 2:
-        selected = SWS_BICUBIC;
-    case 3:
-        selected = SWS_LANCZOS;
-    default:
-        selected = SWS_BILINEAR;
+        case 0:
+            selected = SWS_FAST_BILINEAR;
+        case 1:
+            selected = SWS_BILINEAR;
+        case 2:
+            selected = SWS_BICUBIC;
+        case 3:
+            selected = SWS_LANCZOS;
+        default:
+            selected = SWS_BILINEAR;
     }
     config.scalerFlags = selected;
 
@@ -105,10 +105,8 @@ void Utils::showProgress(double percent, double current, double total) {
             std::cout << " ";
     }
 
-    std::cout << "] "
-              << std::fixed << std::setprecision(1) << percent << "% | "
-              << std::fixed << std::setprecision(2) << current << "s / "
-              << std::fixed << std::setprecision(2) << total << "s";
+    std::cout << "] " << std::fixed << std::setprecision(1) << percent << "% | " << std::fixed << std::setprecision(2)
+              << current << "s / " << std::fixed << std::setprecision(2) << total << "s";
 
     std::cout.flush();
 }
@@ -207,8 +205,7 @@ void Utils::copyAudioSequential(std::vector<VideoInput>& inputs, AVFormatContext
                 if (firstPts == AV_NOPTS_VALUE)
                     firstPts = pkt->pts;
 
-                double pktTime =
-                    (pkt->pts - firstPts) * av_q2d(inputAudio->time_base);
+                double pktTime = (pkt->pts - firstPts) * av_q2d(inputAudio->time_base);
 
                 if (pktTime > adjustedDuration) {
                     av_packet_unref(pkt);

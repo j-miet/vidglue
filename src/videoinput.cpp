@@ -11,8 +11,7 @@ extern "C" {
 
 using std::runtime_error;
 
-AVPixelFormat VideoInput::get_hw_format(AVCodecContext* ctx,
-                                        const AVPixelFormat* pix_fmts) {
+AVPixelFormat VideoInput::get_hw_format(AVCodecContext* ctx, const AVPixelFormat* pix_fmts) {
     for (const enum AVPixelFormat* p = pix_fmts; *p != -1; p++) {
         if (*p == AV_PIX_FMT_CUDA)
             return *p;
@@ -37,8 +36,7 @@ VideoInput::VideoInput(const std::string& filename) {
 
     const AVCodec* decoder = nullptr;
 
-    m_streamIndex = av_find_best_stream(
-        m_format.get(), AVMEDIA_TYPE_VIDEO, -1, -1, &decoder, 0);
+    m_streamIndex = av_find_best_stream(m_format.get(), AVMEDIA_TYPE_VIDEO, -1, -1, &decoder, 0);
 
     if (m_streamIndex < 0)
         throw runtime_error("No video stream found");
@@ -54,9 +52,7 @@ VideoInput::VideoInput(const std::string& filename) {
     // Keep this disabled for now, GPU decoding is currently inefficient
     // checkDecoderHW();
 
-    if (avcodec_parameters_to_context(
-            m_decoder.get(),
-            m_format->streams[m_streamIndex]->codecpar) < 0)
+    if (avcodec_parameters_to_context(m_decoder.get(), m_format->streams[m_streamIndex]->codecpar) < 0)
         throw runtime_error("Failed to copy codec params");
 
     if (avcodec_open2(m_decoder.get(), decoder, nullptr) < 0)
@@ -145,9 +141,7 @@ int VideoInput::getAudioStreamIndex() const {
 
 void VideoInput::m_checkDecoderHW() {
     // Try to enable CUDA decoding
-    if (av_hwdevice_ctx_create(&m_hwDeviceContext,
-                               AV_HWDEVICE_TYPE_CUDA,
-                               nullptr, nullptr, 0) >= 0) {
+    if (av_hwdevice_ctx_create(&m_hwDeviceContext, AV_HWDEVICE_TYPE_CUDA, nullptr, nullptr, 0) >= 0) {
 
         m_decoder->hw_device_ctx = av_buffer_ref(m_hwDeviceContext);
         m_decoder->get_format = get_hw_format; // set function pointer which ffmpeg calls internally

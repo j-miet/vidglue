@@ -10,11 +10,8 @@
 /// @param dstH output height
 /// @param flags scaling algorithm flags
 Scaler::Scaler(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, int flags) {
-    m_context.reset(sws_getContext(
-        srcW, srcH, srcFmt,
-        dstW, dstH, AV_PIX_FMT_YUV420P,
-        flags,
-        nullptr, nullptr, nullptr));
+    m_context.reset(
+        sws_getContext(srcW, srcH, srcFmt, dstW, dstH, AV_PIX_FMT_YUV420P, flags, nullptr, nullptr, nullptr));
 
     if (!m_context)
         throw std::runtime_error("Failed to create SwsContext");
@@ -32,9 +29,7 @@ Scaler::Scaler(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, int
 /// @param input Pointer to constant input frame
 /// @return Pointer to scaled frame
 AVFrame* Scaler::scale(const AVFrame* input) {
-    sws_scale(m_context.get(),
-              input->data, input->linesize, 0, input->height,
-              m_frame->data, m_frame->linesize);
+    sws_scale(m_context.get(), input->data, input->linesize, 0, input->height, m_frame->data, m_frame->linesize);
 
     return m_frame.get();
 }
