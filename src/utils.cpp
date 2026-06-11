@@ -28,8 +28,8 @@ bool Utils::readInputConfig(char* path, InputConfig& config) {
     file >> j;
 
     // setup config using JSON values:
-    // render mode
-    config.mode = (j.at("mode") == 0) ? RenderMode::GRID : RenderMode::SEQUENTIAL;
+    // rendering mode
+    config.mode = (j.at("mode") == "sequence") ? RenderMode::SEQUENTIAL : RenderMode::GRID;
 
     // inputs and output
     std::vector<std::string> inputs{};

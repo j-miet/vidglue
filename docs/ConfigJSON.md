@@ -7,10 +7,63 @@
 ### config.json fields
 
 
-`mode` (integer)
-- defines rendering mode: grid or sequential. **Grid** renders all inputs into a grid layout whereas **sequential** renders them one after another into a sequence
-- **Values**: 0 (for grid layout) or 1 (for sequential layout)
+`mode` (string)
+- defines rendering mode: grid or sequential. 
+    - **Grid** renders all inputs into a grid layout
+    - **Sequential** renders them one after another into a sequence
+- **Values**: `"grid"` for grids, `"sequence"` for sequences 
+    - to be precise, any value != "sequence" defaults to grid mode instead
 
+---
+
+#### Grid vs sequence visualization
+
+
+
+Each video's individual position in output layout is defined as `[top_left_x, top_left_y, width, height]`.
+
+**Here we use output resolution of 1920x1080**.
+
+Let's have a following layout:         
+- vid1: [0, 0, 1500, 600]        
+- vid2: [0, 600, 1500, 480]  
+- vid3: [1500, 600, 420, 0]
+
+(in actual config file inputs are separate from layouts. Therefore layouts must be listed in same order as inputs; see [config template](#configjson-template) at the end of this document)
+
+With grid mode enabled, we get a single grid where each video is part of a single output and as such, progresses simultaneously:
+
+```
+            .--------------------.
+            |               |    |
+            |      vid1     |vid3|
+start  =>   |_______________|____|  => end after vid1 ends
+            |      vid2     |    |
+            |_______________|____|
+```
+- vid1 starts from (0,0) -> bottom-right corner is (0+1500, 0+600) = (1500, 600)
+- vid2 starts from (0, 600) -> bottom-right corner is (0+1500, 600+480) = (1500, 1080)
+- vid3 starts from (1500, 600) -> bottom-right corner is (1500+420, 600+0) = (1920, 600)
+- bottom-right rectangle with top-left (1500, 600) and bottom right (1920, 1080) stays empty and will be displayed as black texture
+- output video audio is copied from **vid1** only -> make sure to have longest video as first!
+
+
+With sequential mode enabled, output video becomes a sequence of all input videos. Each plays one after another and is separated with black pause frames to serve as transition:
+
+```
+            .--------------------.     .--------------------.     .--------------------.
+            |               |    |     |                    |     |               |    |
+            |      vid1     |    | [P] |                    | [P] |               |vid3|    
+start  =>   |_______________|    | ->  |_______________     | ->  |               |____|  => end after final video ends
+            |                    |     |      vid2     |    |     |                    |
+            |____________________|     |_______________|____|     |____________________|
+```
+
+- layout is the same as above in grid, but now only a single video is embedded into output frame of 1920x1080 at a time. Any unused area is filled with black texture again.
+- each video has it's own original audio
+
+---
+<br>
 
 `inputs` (string, multiple values allowed)
 - video inputs to be part of rendered output. Prefer common formats like `.mp4`.
@@ -19,7 +72,6 @@
     - sequential: video order in final output is same as input list order
 - **Values:**
 Path of each input video. If you place videos into same folder as vidglue.exe, only video name is needed e.g. myvideo.mp4
-
 
 `output` (string)
 - **Values**: Output video path. If only name is given, output is generated into same directory as vidglue.exe
@@ -233,3 +285,4 @@ Simple template for different use cases:
 - don't need to touch cpu & gpu specific values (gpuPreset=... and below)
 - can disable gpu with `"useGpu": false` if you prefer smaller file sizes and don't mind the increase in rendering time + cpu usage
 - other than these, you can freely change values and test outputs by setting `"previewDuration"` value > 0 instead of rendering entire videos
+- also remember to keep `"progressTimestamps` value low relative to output video length as this could **significantly** slow down your rendering speed. Don't use value 0 generally: it will print progress on every single frame!
