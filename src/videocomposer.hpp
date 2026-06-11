@@ -7,8 +7,8 @@ extern "C" {
 
 #include "scaler.hpp"
 #include "structs.hpp"
-#include "videoinput.hpp"
-#include "videooutput.hpp"
+#include "video_input.hpp"
+#include "video_output.hpp"
 
 /// @brief Compose inputs into a single output
 class VideoComposer {

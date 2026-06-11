@@ -2,7 +2,7 @@
 #include <stdexcept>
 
 #include "utils.hpp"
-#include "videooutput.hpp"
+#include "video_output.hpp"
 
 using std::runtime_error;
 

@@ -7,7 +7,7 @@
 
 #include "json.hpp" // https://github.com/nlohmann/json/blob/develop/single_include/nlohmann/json.hpp, is MIT licensed
 #include "utils.hpp"
-#include "videoinput.hpp"
+#include "video_input.hpp"
 
 using json = nlohmann::json;
 

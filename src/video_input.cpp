@@ -7,7 +7,7 @@ extern "C" {
 #include <stdexcept>
 
 #include "utils.hpp"
-#include "videoinput.hpp"
+#include "video_input.hpp"
 
 using std::runtime_error;
 

@@ -6,7 +6,7 @@ extern "C" {
 #include <vector>
 
 #include "structs.hpp"
-#include "videoinput.hpp"
+#include "video_input.hpp"
 
 /// @brief Utility functions, handles also audio copying.
 class Utils {

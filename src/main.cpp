@@ -6,9 +6,9 @@
 
 #include "structs.hpp"
 #include "utils.hpp"
+#include "video_input.hpp"
+#include "video_output.hpp"
 #include "videocomposer.hpp"
-#include "videoinput.hpp"
-#include "videooutput.hpp"
 
 int main(int argc, char* argv[]) {
     av_log_set_level(AV_LOG_QUIET);
