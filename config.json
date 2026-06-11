@@ -1,5 +1,5 @@
 {
-    "mode": 0,
+    "mode": "grid",
     "inputs": ["vid1.mp4", "vid2.mp4"],
     "output": "output.mp4",
     "layout": [
