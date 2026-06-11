@@ -29,9 +29,14 @@ Only reasons would be:
 - supports any amount of input videos in grid or sequential layouts:
     - **grid** allows free positioning and resizing so you can place videos in rows, columns, NxN grids or in 
     any other uneven formation. Any unfilled space stays black. <u>Also make sure that regions don't overlap!</u>
+        - video length is longest video's length
     - **sequential** is similar and you can freely position and resize each video inside its own output window.
      Final video is then a sequence of all videos in one single output, with optional black pause/transition frames 
      between each to clearly separate them.
+        - video length is sum of all video lengths + pause_timer * (total_video_count-1)
+
+    For a simple visual image, check [here](docs/ConfigJSON.md#grid-vs-sequence-visualization)
+
 - audio support
     - for grids, audio is copied from the **first input** only -> no support for multiple audio streams. 
     - for sequences, audio is also copied but this time from each video individually and concatenated together. Now this 
@@ -75,7 +80,8 @@ You can verify version with `ffmpeg -version`
 You most likely don't need to install these manually, but in case you do:  
 `sudo apt install libgomp1 libgomp-plugin-dev`
 
-After installing dependencies, you can use `make release` to generate the release build in `release/vidglue-{VERSION}-linux64`.
+After installing dependencies, in MINGW64 shell, use command `make release` to generate the release 
+build in `release/vidglue-{VERSION}-linux64`.
 
 
 ### Windows
