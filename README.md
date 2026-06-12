@@ -80,13 +80,13 @@ You can verify version with `ffmpeg -version`
 You most likely don't need to install these manually, but in case you do:  
 `sudo apt install libgomp1 libgomp-plugin-dev`
 
-After installing dependencies, in MINGW64 shell, use command `make release` to generate the release 
+After installing dependencies, run command `make release` in terminal to generate the release 
 build in `release/vidglue-{VERSION}-linux64`.
 
 
 ### Windows
 
-First make sure you have installed [MSYS2](https://www.msys2.org/) MINGW64 shell.
+First make sure you have installed [MSYS2](https://www.msys2.org/) **MINGW64** environment.
 
 Following FFmpeg DLLs are dynamically linked to vidglue.exe and thus required to run the executable:
 - avcodec-62.dll

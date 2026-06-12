@@ -1,4 +1,4 @@
-CXX := g++
+CXX ?= g++
 PROJECT_ROOT := $(shell pwd)
 SRC_DIR := $(PROJECT_ROOT)/src
 BIN_DIR := $(PROJECT_ROOT)/bin
@@ -80,8 +80,9 @@ dev:
 		$(CXXFLAGS_DEV) \
 		$(FFMPEG_CFLAGS) \
 		$(LDFLAGS)
+	$(BIN_DIR)/$(TARGET)
 
-run: dev
+run:
 	$(BIN_DIR)/$(TARGET)
 
 release:
