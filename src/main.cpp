@@ -38,12 +38,14 @@ int main(int argc, char* argv[]) {
         auto& v = inputs.back();
 
         AVStream* videoStream = v.getFormatContext()->streams[v.getVideoStreamIndex()];
+
         double fps = av_q2d(videoStream->avg_frame_rate);
         if (fps <= 0.0)
-            fps = 30.0; // fallback
+            fps = 30.0;
+
         inputFPS.push_back(fps);
 
-        maxDuration = std::max(maxDuration, v.getDuration()); // get duration of longest input
+        maxDuration = std::max(maxDuration, v.getDuration());
 
         v.decodeNextFrame(); // pre-decode first frame for test purposes
     }
@@ -51,7 +53,7 @@ int main(int argc, char* argv[]) {
     // setup output streams and write header
     VideoOutput out(SETTINGS);
 
-    // because audio will be copied from first input without resampling, use it for output stream creation
+    // because audio is copied from first input without resampling, use it for output stream creation
     if (config.audioEnabled) {
         int audioStream = inputs[0].getAudioStreamIndex();
         if (audioStream >= 0) {
@@ -69,6 +71,7 @@ int main(int argc, char* argv[]) {
         VideoComposer composer(inputs, config.layout, out, config.outW, config.outH, config.fps, inputFPS,
                                config.scalerFlags, config.progressTimestamp);
         composer.processGrid(adjustedDuration, config.speedMultiplier);
+
         Utils::showProgress(100.0, adjustedDuration, adjustedDuration);
 
         if (config.audioEnabled) {
@@ -84,6 +87,7 @@ int main(int argc, char* argv[]) {
             // lazy audio copying + create silence during pauses by skipping timestamps
             std::cout << "\nCopying audio...\n";
             int outAudioIndex = 1; // video is usually in index 0, audio in 1
+
             Utils::copyAudioSequential(inputs, out.getFormatContext(), outAudioIndex, config.previewDuration,
                                        config.speedMultiplier, config.pauseDuration);
         }
@@ -98,5 +102,6 @@ int main(int argc, char* argv[]) {
         std::cout << "Press enter to close this window" << std::endl;
         std::cin.get();
     }
+
     return 0;
 }

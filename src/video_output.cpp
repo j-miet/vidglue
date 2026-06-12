@@ -131,6 +131,8 @@ void VideoOutput::writeFrame(AVFrame* frame) {
         av_interleaved_write_frame(m_outFormat.get(), pkt);
         av_packet_unref(pkt);
     }
+
+    av_packet_free(&pkt);
 }
 
 /// @brief Ensure all packets are written, write trailer and close output file
@@ -152,6 +154,8 @@ void VideoOutput::finish() {
     if (m_outFormat->pb && !(m_outFormat->oformat->flags & AVFMT_NOFILE))
         avio_closep(&m_outFormat->pb);
 
+    av_packet_free(&pkt);
+
     m_finished = true;
 }
 
@@ -163,8 +167,10 @@ const AVCodec* VideoOutput::m_selectEncoder(bool gpuRequested, bool& usingGPU) {
         if (encoder) {
             usingGPU = true;
             std::cout << "Using NVENC GPU encoder\n";
+
             return encoder;
         }
+
         std::cout << "GPU requested but not available, falling back to CPU\n";
     }
 
@@ -173,6 +179,8 @@ const AVCodec* VideoOutput::m_selectEncoder(bool gpuRequested, bool& usingGPU) {
     encoder = avcodec_find_encoder_by_name("libx264");
     if (!encoder)
         encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
+
     std::cout << "Using CPU encoder\n";
+
     return encoder;
 }

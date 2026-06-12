@@ -105,8 +105,14 @@ void Utils::showProgress(double percent, double current, double total) {
             std::cout << " ";
     }
 
-    std::cout << "] " << std::fixed << std::setprecision(1) << percent << "% | " << std::fixed << std::setprecision(2)
-              << current << "s / " << std::fixed << std::setprecision(2) << total << "s";
+    // clang-format off
+
+    std::cout << "] " 
+              << std::fixed << std::setprecision(1) << percent << "% | " 
+              << std::fixed << std::setprecision(2) << current << "s / " 
+              << std::fixed << std::setprecision(2) << total << "s";
+
+    // clang-format on
 
     std::cout.flush();
 }
@@ -155,6 +161,8 @@ void Utils::copyAudio(VideoInput& input, AVFormatContext* outFormat, double maxT
 
         av_packet_unref(pkt);
     }
+
+    av_packet_free(&pkt);
 }
 
 /// @brief Copy audio from sequence of video inputs into one. Can insert phantom noise (= no audio) between videos.
