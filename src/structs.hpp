@@ -99,3 +99,10 @@ struct SwsDeleter {
             sws_freeContext(s);
     }
 };
+
+struct PacketDeleter {
+    void operator()(AVPacket* p) const {
+        if (p)
+            av_packet_free(&p);
+    }
+};

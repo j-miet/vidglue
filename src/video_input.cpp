@@ -63,6 +63,9 @@ VideoInput::VideoInput(const std::string& filename) {
 
     if (!m_frame || !m_tempFrame)
         throw runtime_error("Failed to allocate frames");
+
+    AVPacket* decodePacket = av_packet_alloc();
+    m_packet.reset(decodePacket);
 }
 
 VideoInput::~VideoInput() {
@@ -76,42 +79,46 @@ bool VideoInput::decodeNextFrame() {
     if (m_eof)
         return false;
 
-    AVPacket* pkt{av_packet_alloc()};
-
     while (true) {
-        int ret = av_read_frame(m_format.get(), pkt);
+        int ret = av_read_frame(m_format.get(), m_packet.get());
         if (ret < 0) {
             avcodec_send_packet(m_decoder.get(), nullptr);
+
             if (avcodec_receive_frame(m_decoder.get(), m_tempFrame.get()) == 0) {
                 av_frame_unref(m_frame.get());
                 av_frame_move_ref(m_frame.get(), m_tempFrame.get());
                 m_decodedFrameIndex++;
+
                 return true;
             }
+
             m_eof = true;
+
             return false;
         }
 
-        if (pkt->stream_index != m_streamIndex) {
-            av_packet_unref(pkt);
+        if (m_packet.get()->stream_index != m_streamIndex) {
+            av_packet_unref(m_packet.get());
             continue;
         }
 
-        avcodec_send_packet(m_decoder.get(), pkt);
-        av_packet_unref(pkt);
+        avcodec_send_packet(m_decoder.get(), m_packet.get());
+        av_packet_unref(m_packet.get());
 
         ret = avcodec_receive_frame(m_decoder.get(), m_tempFrame.get());
         if (ret == AVERROR(EAGAIN))
             continue;
         if (ret < 0) {
             m_eof = true;
+
             return false;
         }
 
         av_frame_unref(m_frame.get());
 
-        // GPU decocing is currently inefficient; don't call checkDecoderHW in constructor
-        // Reason is that av_hwframe_transfer_data need to
+        // GPU decoding is currently inefficient; don't call checkDecoderHW in constructor
+        // Reason is that data transfer + moving it to frame can be a very slow operation on somewhat dated hardware
+        // -- TODO should probably just add a separate config boolean flag which enables/disables this
         if (m_useHW && m_tempFrame->format == AV_PIX_FMT_CUDA) {
             if (av_hwframe_transfer_data(m_frame.get(), m_tempFrame.get(), 0) < 0) {
                 throw runtime_error("Failed to transfer GPU frame to CPU");
@@ -121,6 +128,7 @@ bool VideoInput::decodeNextFrame() {
         }
 
         m_decodedFrameIndex++;
+
         return true;
     }
 }

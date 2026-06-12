@@ -18,6 +18,7 @@ class VideoInput {
     // copy constructor gets generated, but for safety reasons prevent copying unique_ptr and causing errors
     VideoInput(const VideoInput&) = delete;
     VideoInput& operator=(const VideoInput&) = delete;
+
     // move constructor must be defined manually
     VideoInput(VideoInput&&) = default;
     VideoInput& operator=(VideoInput&&) = default;
@@ -38,6 +39,7 @@ class VideoInput {
     std::unique_ptr<AVCodecContext, CodecDeleter> m_decoder;
     std::unique_ptr<AVFrame, FrameDeleter> m_frame;
     std::unique_ptr<AVFrame, FrameDeleter> m_tempFrame;
+    std::unique_ptr<AVPacket, PacketDeleter> m_packet;
 
     int m_decodedFrameIndex{0};
     int m_streamIndex{-1};
